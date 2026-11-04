@@ -236,3 +236,4 @@ export class ZcashMemoRegistry {
 }
 
 export const zcashMemoRegistry = new ZcashMemoRegistry();
+

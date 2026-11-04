@@ -254,3 +254,4 @@ export class ZcashVerifierService {
 }
 
 export const zcashVerifier = new ZcashVerifierService();
+
