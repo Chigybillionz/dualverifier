@@ -10,7 +10,7 @@
     />
 
     <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
       <!-- Hero Banner & Mode Toggle -->
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-800 pb-6">
         <div class="space-y-2">
@@ -101,7 +101,10 @@
         <!-- RIGHT COLUMN: The Hero Blue Verification Card (7 cols) -->
         <div class="lg:col-span-7 space-y-6">
           <div v-if="activeBlueCard">
-            <BlueVerificationCard :card="activeBlueCard" />
+            <BlueVerificationCard
+              :card="activeBlueCard"
+              @open-certificate="handleOpenCertificate"
+            />
           </div>
 
           <!-- Empty State / Standby Screen -->
@@ -131,6 +134,14 @@
           </div>
         </div>
       </div>
+
+      <!-- MODULE 4: LIVE VERIFICATION AUDIT LEDGER TABLE AT BOTTOM OF PAGE -->
+      <section class="pt-6 border-t border-slate-800">
+        <VerificationHistoryDrawer
+          :items="auditHistoryItems"
+          @select-history-item="handleSelectHistoryItem"
+        />
+      </section>
     </main>
 
     <!-- Footer -->
@@ -150,6 +161,14 @@
         </div>
       </div>
     </footer>
+
+    <!-- MODULE 3: PRINTABLE / SHAREABLE "BLUE TICK" QR VERIFICATION CERTIFICATE MODAL -->
+    <ProofCertificateModal
+      :isOpen="isCertificateModalOpen"
+      :card="certificateModalCard"
+      @close="isCertificateModalOpen = false"
+      @trigger-replay-from-modal="handleTriggerReplay"
+    />
 
     <!-- Shielded Memos Ledger Slide-Over Drawer -->
     <div v-if="isLedgerOpen" class="fixed inset-0 z-50 overflow-hidden">
@@ -237,14 +256,18 @@ import ModeToggle from './components/ModeToggle.vue';
 import LocalBankVerifier from './components/LocalBankVerifier.vue';
 import ZcashChainVerifier from './components/ZcashChainVerifier.vue';
 import BlueVerificationCard from './components/BlueVerificationCard.vue';
+import ProofCertificateModal from './components/ProofCertificateModal.vue';
+import VerificationHistoryDrawer, { HistoryAuditItem } from './components/VerificationHistoryDrawer.vue';
 import ReceiptVisualModal from './components/ReceiptVisualModal.vue';
 
 const activeRail = ref<'LOCAL_BANK' | 'ZCASH'>('LOCAL_BANK');
 const isLoading = ref(false);
 const isLedgerOpen = ref(false);
 const isReceiptModalOpen = ref(false);
+const isCertificateModalOpen = ref(false);
 
 const activeBlueCard = ref<any>(null);
+const certificateModalCard = ref<any>(null);
 const shieldedMemos = ref<any[]>([]);
 const currentPresetVisual = ref<any>(null);
 
@@ -253,9 +276,150 @@ const zcashVerifierRef = ref<any>(null);
 
 let demoPresets: any[] = [];
 
+// Pre-populated realistic session entries for the live audit ledger
+const auditHistoryItems = ref<HistoryAuditItem[]>([
+  {
+    id: 'hist-1',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    rail: 'LOCAL_BANK',
+    sender: 'Alhaji Ibrahim Danladi (Zenith Bank)',
+    receiver: 'Chukwudi Superstores (Moniepoint)',
+    amount: '₦120,000.00',
+    currency: 'NGN',
+    proofHash: '0x4f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a',
+    status: 'VERIFIED',
+    badgeTitle: 'VERIFIED AUTHENTIC',
+    fullBlueCard: {
+      rail: 'LOCAL_BANK',
+      status: 'VERIFIED',
+      badgeTitle: 'VERIFIED AUTHENTIC',
+      badgeColor: 'emerald',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      proofHash: '0x4f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a',
+      routingPipeline: {
+        sender: {
+          title: 'Originating Sender (Web2)',
+          identifier: 'Alhaji Ibrahim Danladi',
+          institution: 'Zenith Bank PLC (000015)',
+          bankLogoColor: '#c51b24',
+          verified: true
+        },
+        rail: {
+          type: 'NIBSS Instant Payment (NIP)',
+          identifier: '000015250410123045982143658709',
+          timestamp: '10 Apr 2025, 12:30:45',
+          protocol: 'CBN Gateway + Zcash Shielded Memo Anchor',
+          verified: true
+        },
+        receiver: {
+          title: 'Settled Recipient (Merchant)',
+          identifier: 'Chukwudi Superstores (2210984532)',
+          institution: 'Moniepoint MFB',
+          amountFormatted: '₦120,000.00',
+          currency: 'NGN',
+          verified: true
+        }
+      },
+      forensics: {
+        flags: []
+      },
+      zcashShieldedAnchor: {
+        proofHash: '0x4f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a',
+        zcashTxId: '0x99281a8c3d2e1f4b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a',
+        blockHeight: 2548810,
+        zcashPool: 'ORCHARD',
+        memoUtf8: '[DUALVERIFIER-ZCASH-PROOF-2026] PROOF:0x4f8a...9f0a | AMT:120000 NGN | FROM:Zenith Bank | TO:Moniepoint | AT:2025-04-10T12:30:45Z',
+        claimCount: 1,
+        firstAnchoredIso: new Date(Date.now() - 3600000).toISOString(),
+        isReplayAttack: false,
+        explorerUrl: 'https://blockchair.com/zcash/transaction/0x99281a8c3d2e1f4b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a'
+      }
+    }
+  },
+  {
+    id: 'hist-2',
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    rail: 'ZCASH',
+    sender: 'Shielded Orchard Pool (Halo 2)',
+    receiver: 'u1q4k9n7e8...a6c8e0g2',
+    amount: '5.10000000 ZEC',
+    currency: 'ZEC',
+    proofHash: '0x7e2d9a1c4b5f8e0a3d6c9b2e5a8f1d4c7b0e3a6f9d2c5b8e1a4d7c0f3b6e9a2d',
+    status: 'VERIFIED',
+    badgeTitle: 'SHIELDED VERIFIED (SELECTIVE DISCLOSURE)',
+    fullBlueCard: {
+      rail: 'ZCASH',
+      status: 'VERIFIED',
+      badgeTitle: 'SHIELDED VERIFIED (SELECTIVE DISCLOSURE)',
+      badgeColor: 'blue',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      proofHash: '0x7e2d9a1c4b5f8e0a3d6c9b2e5a8f1d4c7b0e3a6f9d2c5b8e1a4d7c0f3b6e9a2d',
+      routingPipeline: {
+        sender: {
+          title: 'Sender Pool (From)',
+          identifier: 'Shielded Pool (Halo 2 ZK)',
+          institution: 'Zcash Orchard Pool',
+          bankLogoColor: '#3b82f6',
+          verified: true
+        },
+        rail: {
+          type: 'Zcash z-to-z (Shielded Orchard)',
+          identifier: '0x9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d',
+          timestamp: 'Zcash Mainnet • Block #2548980',
+          protocol: 'Zcash Mainnet • Block #2548980',
+          verified: true
+        },
+        receiver: {
+          title: 'Recipient (To)',
+          identifier: 'u1q4k9n7e8...a6c8e0g2',
+          institution: 'Unified Address (ZIP-316)',
+          amountFormatted: '5.10000000 ZEC',
+          currency: 'ZEC',
+          verified: true
+        }
+      },
+      zcashDetails: {
+        txid: '0x9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d',
+        blockHeight: 2548980,
+        confirmations: 122,
+        memo: {
+          selectiveDisclosureActive: true,
+          decryptedText: 'BUNN Merchant Payment: Global Settlement 5.10 ZEC | Zero-Knowledge Proven'
+        },
+        selectiveDisclosure: {
+          isValidDisclosure: true,
+          disclosureStatement: 'Decrypted via Selective Disclosure (Unified Viewing Key uview1...). Note amount and 512-byte memo revealed.'
+        }
+      },
+      forensics: { flags: [] }
+    }
+  }
+]);
+
 const totalReplaysBlocked = computed(() => {
   return shieldedMemos.value.reduce((sum, r) => sum + Math.max(0, (r.claimCount || 1) - 1), 0);
 });
+
+// MODULE 2: Mirror claimed hashes to frontend localStorage
+function mirrorHashToLocalStorage(proofHash: string, metadata: any) {
+  try {
+    const raw = localStorage.getItem('dualverifier_claimed_hashes') || '{}';
+    const store = JSON.parse(raw);
+    if (!store[proofHash]) {
+      store[proofHash] = {
+        firstVerifiedAt: new Date().toISOString(),
+        claimCount: 1,
+        metadata
+      };
+    } else {
+      store[proofHash].claimCount += 1;
+      store[proofHash].lastReplayedAt = new Date().toISOString();
+    }
+    localStorage.setItem('dualverifier_claimed_hashes', JSON.stringify(store));
+  } catch (err) {
+    // Ignore localStorage errors
+  }
+}
 
 async function fetchShieldedMemos() {
   try {
@@ -297,6 +461,30 @@ function fireConfetti() {
   } catch (err) {}
 }
 
+function appendToAuditHistory(card: any) {
+  const newItem: HistoryAuditItem = {
+    id: `audit-${Date.now()}`,
+    timestamp: card.timestamp || new Date().toISOString(),
+    rail: card.rail,
+    sender: card.routingPipeline?.sender?.identifier || 'Sender',
+    receiver: card.routingPipeline?.receiver?.identifier || 'Receiver',
+    amount: card.routingPipeline?.receiver?.amountFormatted || 'N/A',
+    currency: card.routingPipeline?.receiver?.currency || '',
+    proofHash: card.proofHash,
+    status: card.status,
+    badgeTitle: card.badgeTitle,
+    fullBlueCard: card
+  };
+
+  // Prepend to list so newest is on top
+  auditHistoryItems.value.unshift(newItem);
+  mirrorHashToLocalStorage(card.proofHash, {
+    sender: newItem.sender,
+    receiver: newItem.receiver,
+    amount: newItem.amount
+  });
+}
+
 async function handleVerifyLocal(payload: any) {
   isLoading.value = true;
   try {
@@ -317,6 +505,7 @@ async function handleVerifyLocal(payload: any) {
     const data = await res.json();
     if (data.success && data.blueCard) {
       activeBlueCard.value = data.blueCard;
+      appendToAuditHistory(data.blueCard);
       if (data.blueCard.status === 'VERIFIED') fireConfetti();
       await fetchShieldedMemos();
     } else {
@@ -341,6 +530,7 @@ async function handleVerifyZcash(payload: any) {
     const data = await res.json();
     if (data.success && data.blueCard) {
       activeBlueCard.value = data.blueCard;
+      appendToAuditHistory(data.blueCard);
       if (data.blueCard.status === 'VERIFIED') fireConfetti();
     } else {
       alert(data.error || 'Zcash verification error');
@@ -355,7 +545,6 @@ async function handleVerifyZcash(payload: any) {
 function handleSelectPreset(presetId: string) {
   const p = demoPresets.find(item => item.id === presetId);
   if (!p) {
-    // Fallback if not loaded
     if (presetId === 'preset-valid-gtb-opay') {
       activeRail.value = 'LOCAL_BANK';
       localVerifierRef.value?.loadPreset('000013250324114215984716382910', 'Guaranty Trust Bank (GTBank)', 50000);
@@ -418,6 +607,18 @@ function handleTriggerReplay() {
       receiptTimestamp: '2025-03-24T11:42:15+01:00'
     }
   });
+}
+
+function handleOpenCertificate(card: any) {
+  certificateModalCard.value = card;
+  isCertificateModalOpen.value = true;
+}
+
+function handleSelectHistoryItem(item: HistoryAuditItem) {
+  activeBlueCard.value = item.fullBlueCard;
+  certificateModalCard.value = item.fullBlueCard;
+  isCertificateModalOpen.value = true;
+  activeRail.value = item.rail;
 }
 
 async function handleResetRecord(proofHash: string) {

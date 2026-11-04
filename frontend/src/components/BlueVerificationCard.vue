@@ -101,19 +101,16 @@
       <!-- Action buttons -->
       <div class="flex items-center space-x-2 no-print">
         <button
-          @click="printCertificate"
-          class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 hover:border-blue-500/50 text-xs font-medium flex items-center space-x-1.5 transition-colors"
-          title="Print or export as tamper-proof certificate"
+          @click="$emit('open-certificate', card)"
+          class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-blue-500/20 active:scale-95 transition-all"
+          title="Open and print tamper-proof official cryptographic certificate"
         >
-          <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-          </svg>
-          <span>Export Certificate</span>
+          <span>📜 Export Official Certificate</span>
         </button>
 
         <button
           @click="copyProofHash"
-          class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 hover:border-blue-500/50 text-xs font-medium flex items-center space-x-1.5 transition-colors"
+          class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 hover:border-blue-500/50 text-xs font-medium flex items-center space-x-1.5 transition-colors"
         >
           <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -408,6 +405,11 @@ import QRCode from 'qrcode';
 
 const props = defineProps<{
   card: any;
+}>();
+
+const emit = defineEmits<{
+  (e: 'open-certificate', card: any): void;
+  (e: 'trigger-replay', card: any): void;
 }>();
 
 const copied = ref(false);

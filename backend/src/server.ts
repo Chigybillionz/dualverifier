@@ -80,7 +80,8 @@ app.post('/api/verify/local', upload.single('receipt'), async (req, res) => {
       currency,
       receiptTimestamp,
       simulatedTamperScore: simulatedTamperScore ? Number(simulatedTamperScore) : undefined,
-      flaggedSoftware
+      flaggedSoftware,
+      merchantId: req.body.claimantMerchant || req.body.merchantId
     });
 
     res.status(200).json({ success: true, blueCard });

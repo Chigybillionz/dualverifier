@@ -14,8 +14,8 @@
 
       <!-- Network Indicator -->
       <div class="flex items-center space-x-2 text-xs font-mono text-slate-400">
-        <span class="w-2 h-2 rounded-full bg-blue-400"></span>
-        <span>Zcash Mainnet RPC</span>
+        <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+        <span>Zcash Mainnet (Zebra / Zallet)</span>
       </div>
     </div>
 
@@ -74,27 +74,77 @@
         placeholder="u1q4k9n7e8... (Unified Address) or zs1... (Sapling) or t1... (Transparent)"
         class="w-full bg-slate-900 border border-slate-800 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 rounded-2xl px-4 py-3 text-slate-100 font-mono text-xs placeholder:text-slate-600 transition-all outline-none"
       />
+
+      <!-- MODULE 1: ZIP-316 Unified Address Receiver Breakdown Box -->
+      <div v-if="isUnifiedAddress" class="mt-3 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 text-xs">
+        <div class="text-[11px] font-bold text-blue-400 font-mono uppercase tracking-wider flex items-center justify-between">
+          <span>ZIP-316 Bundled Receiver Breakdown:</span>
+          <span class="text-[10px] text-slate-400 font-mono">Halo 2 / Groth16</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-[11px]">
+          <!-- Receiver 1: Orchard / Ironwood -->
+          <div class="p-2.5 rounded-xl bg-slate-850 border border-blue-500/30">
+            <div class="flex items-center justify-between mb-0.5">
+              <span class="font-bold text-blue-300">Orchard Pool</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            </div>
+            <p class="text-[10px] text-emerald-400 font-bold">Active (Zero-Knowledge)</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">Halo 2 recursive note commitments</p>
+          </div>
+
+          <!-- Receiver 2: Sapling -->
+          <div class="p-2.5 rounded-xl bg-slate-850 border border-slate-800">
+            <div class="flex items-center justify-between mb-0.5">
+              <span class="font-bold text-slate-300">Sapling Pool</span>
+              <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+            </div>
+            <p class="text-[10px] text-blue-300">Compatible (Groth16)</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">Backward-compatible shielded note</p>
+          </div>
+
+          <!-- Receiver 3: Transparent Fallback -->
+          <div class="p-2.5 rounded-xl bg-slate-850 border border-slate-800">
+            <div class="flex items-center justify-between mb-0.5">
+              <span class="font-bold text-slate-400">Transparent P2PKH</span>
+              <span class="w-2 h-2 rounded-full bg-slate-600"></span>
+            </div>
+            <p class="text-[10px] text-slate-500">Disabled / Optional</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">Suppressed for maximal privacy</p>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Selective Disclosure Viewing Key Input (uview1... / uivk1...) -->
+    <!-- MODULE 1: Selective Disclosure & Ephemeral Client-Scoped Viewing Key Guard -->
     <div class="p-4 rounded-2xl bg-slate-900/90 border border-blue-500/30 space-y-3 shadow-inner">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center space-x-2">
           <div class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs">
             🔑
           </div>
           <span class="text-xs font-bold text-slate-200">
-            Selective Disclosure (Viewing Key)
+            Selective Disclosure (Unified Viewing Key)
           </span>
         </div>
-        <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-300 font-mono border border-amber-800/80">
-          Zero-Knowledge Decryption
+
+        <!-- Ephemeral Guard Badge -->
+        <span
+          class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 font-mono border border-emerald-800/80 flex items-center gap-1"
+          title="Unlike legacy web explorers, DualVerifier wipes key material from memory immediately after decrypting the proof"
+        >
+          <span>🔒 Ephemeral Zero-Log Decryption (ZIP-310 UIVK Scoped)</span>
         </span>
       </div>
 
-      <p class="text-[11px] text-slate-400 leading-relaxed">
-        Supply an incoming viewing key (<code class="text-blue-300 font-mono">uview1...</code> or <code class="text-blue-300 font-mono">uivk1...</code>) or Payment Disclosure blob to decrypt shielded amounts and 512-byte memos without exposing spending authorization.
-      </p>
+      <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 space-y-1.5 leading-relaxed">
+        <p>
+          Supply an incoming viewing key (<code class="text-blue-300 font-mono">uview1...</code> or <code class="text-blue-300 font-mono">uivk1...</code>) to decrypt shielded amounts and 512-byte memos.
+        </p>
+        <p class="text-[10px] text-slate-500 font-mono">
+          💡 <span class="text-slate-400 font-semibold">Zallet CLI Export:</span>
+          <code class="text-amber-300">zallet rpc z_exportviewingkey "&lt;u1_address&gt;" true</code> (Scopes decryption strictly to transaction notes without exposing private spending keys).
+        </p>
+      </div>
 
       <div class="relative">
         <input
@@ -162,11 +212,22 @@ const txidInput = ref('');
 const unifiedAddressInput = ref('u1q4k9n7e8y0t2w4x6m8p0r2s4u6v8x0z2a4c6e8g0j2l4n6q8s0u2w4x6z8a0c2e4g6j8l0n2p4r6t8v0x2z4a6c8e0g2');
 const viewingKeyInput = ref('uview1q4k9n7e8y0t2w4x6m8p0r2s4u6v8x0z2a4c6e8g0j2l4n6q8s0u2w4x6z8a0c2e4g6j8l0n2p4r6t8v0x2z4a6c8e0g2');
 
+const isUnifiedAddress = computed(() => {
+  const addr = unifiedAddressInput.value.trim();
+  return addr.startsWith('u1') || addr.startsWith('utest1');
+});
+
 const addressBadge = computed(() => {
   const addr = unifiedAddressInput.value.trim();
-  if (addr.startsWith('u1')) return { label: 'Orchard Unified (ZIP-316)', color: 'bg-blue-950 text-blue-300' };
-  if (addr.startsWith('zs1')) return { label: 'Sapling Shielded', color: 'bg-emerald-950 text-emerald-300' };
-  if (addr.startsWith('t1') || addr.startsWith('t3')) return { label: 'Transparent (Legacy)', color: 'bg-slate-800 text-slate-300' };
+  if (addr.startsWith('u1') || addr.startsWith('utest1')) {
+    return { label: 'Orchard Unified (ZIP-316)', color: 'bg-blue-950 text-blue-300' };
+  }
+  if (addr.startsWith('zs1')) {
+    return { label: 'Sapling Shielded', color: 'bg-emerald-950 text-emerald-300' };
+  }
+  if (addr.startsWith('t1') || addr.startsWith('t3')) {
+    return { label: 'Transparent (Legacy)', color: 'bg-slate-800 text-slate-300' };
+  }
   return null;
 });
 
@@ -207,4 +268,3 @@ defineExpose({
   }
 });
 </script>
-

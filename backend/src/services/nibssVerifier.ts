@@ -368,6 +368,7 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
   receiptTimestamp?: string;
   simulatedTamperScore?: number;
   flaggedSoftware?: string;
+  merchantId?: string;
 }): Promise<LocalBankVerificationOutput> {
   const {
     sessionId,
@@ -378,13 +379,15 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
     receiverAccount = '••••••••••',
     amount,
     currency = 'NGN',
-    receiptTimestamp = new Date().toISOString(),
+    receiptTimestamp,
     simulatedTamperScore,
-    flaggedSoftware
+    flaggedSoftware,
+    merchantId
   } = params;
 
   // 1. Deterministic NIBSS mathematical validation
   const nibssResult = decodeNibssSessionId(sessionId, senderBank, receiptTimestamp);
+  const effectiveTimestamp = receiptTimestamp || nibssResult.timestampSegment.parsedIso || new Date().toISOString();
 
   const allFlags = [...nibssResult.flags];
   if (flaggedSoftware) {
@@ -392,17 +395,18 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
   }
 
   const isNibssValid = nibssResult.overallVerdict === 'AUTHENTIC';
-  const isTamperClean = !simulatedTamperScore || Number(simulatedTamperScore) >= 50;
+  const isTamperClean = simulatedTamperScore === undefined || Number(simulatedTamperScore) >= 50;
   const isGenuine = isNibssValid && isTamperClean;
 
-  // 2. Anchor into Zcash 512-Byte Shielded Memo Registry
-  const anchorResult = await zcashMemoRegistry.anchorReceiptProof({
-    sessionId: nibssResult.rawSessionId,
+  // 2. Anchor & Check into Zcash 512-Byte Shielded Memo Registry (Anti-Double-Spend Trap)
+  const anchorResult = await zcashMemoRegistry.checkAndLockReceiptHash({
+    sessionIdOrTxId: nibssResult.rawSessionId,
     sender: `${senderBank}:${senderName}`,
     receiver: `${receiverBank}:${receiverAccount}`,
     amount,
     currency,
-    receiptTimestamp
+    timestamp: effectiveTimestamp,
+    merchantId
   });
 
   // 3. Status determination
@@ -414,18 +418,18 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
     status = 'INVALID';
     badgeTitle = 'INVALID SESSION ID';
     badgeColor = 'crimson';
-  } else if (!isGenuine) {
-    status = 'TAMPERED';
-    badgeTitle = 'FORGED / TAMPERED RECEIPT DETECTED';
-    badgeColor = 'crimson';
-  } else if (anchorResult.claimCount > 1) {
+  } else if (anchorResult.status === 'DUPLICATE_REPLAY_DETECTED' || anchorResult.claimCount > 1) {
     // REPLAY ATTACK INTERCEPTED BY ZCASH SHIELDED MEMO REGISTRY!
     status = 'DUPLICATE';
     badgeTitle = `DUPLICATE / ALREADY CLAIMED (ATTEMPT #${anchorResult.claimCount})`;
     badgeColor = 'amber';
     allFlags.unshift(
-      `CRITICAL REPLAY INTERCEPTION: This receipt fingerprint was already recorded in Zcash Shielded Memo on block #${anchorResult.blockHeight} at ${anchorResult.record.firstAnchoredIso}. Double-spending attempt blocked!`
+      `CRITICAL REPLAY INTERCEPTION: This receipt fingerprint was already recorded in Zcash Shielded Memo on block #${anchorResult.blockHeight} at ${anchorResult.firstVerifiedAtIso}. Double-spending attempt blocked!`
     );
+  } else if (!isGenuine) {
+    status = 'TAMPERED';
+    badgeTitle = 'FORGED / TAMPERED RECEIPT DETECTED';
+    badgeColor = 'crimson';
   }
 
   const senderBankRecord = lookupCbnBank(senderBank) || nibssResult.bankCodeSegment.resolvedBank;
@@ -480,7 +484,7 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
       memoHex: anchorResult.memoHex,
       memoBytesLength: 512,
       claimCount: anchorResult.claimCount,
-      firstAnchoredIso: anchorResult.record.firstAnchoredIso,
+      firstAnchoredIso: anchorResult.firstVerifiedAtIso,
       isReplayAttack: anchorResult.claimCount > 1,
       explorerUrl: `https://blockchair.com/zcash/transaction/${anchorResult.zcashTxId}`
     }
