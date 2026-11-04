@@ -60,6 +60,11 @@ export interface LocalBankVerificationOutput {
       institution: string;
       amountFormatted: string;
       currency: string;
+      multiCurrency?: {
+        ngn: string;
+        usd: string;
+        zec: string;
+      };
       verified: boolean;
     };
   };
@@ -73,10 +78,12 @@ export interface LocalBankVerificationOutput {
     proofHash: string;
     zcashTxId: string;
     blockHeight: number;
-    zcashPool: 'ORCHARD' | 'SAPLING';
+    zcashPool: 'IRONWOOD' | 'ORCHARD' | 'SAPLING';
+    zcashPoolDisplay?: string;
     memoUtf8: string;
     memoHex: string;
     memoBytesLength: number;
+    memoJsonMetadata?: any;
     claimCount: number;
     firstAnchoredIso: string;
     isReplayAttack: boolean;
@@ -435,6 +442,15 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
   const senderBankRecord = lookupCbnBank(senderBank) || nibssResult.bankCodeSegment.resolvedBank;
   const receiverBankRecord = lookupCbnBank(receiverBank);
 
+  const numAmount = Number(amount) || 0;
+  const usdEquiv = numAmount / 1550.00;
+  const zecEquiv = usdEquiv / 38.50;
+  const multiCurrency = {
+    ngn: `₦${numAmount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} NGN`,
+    usd: `$${usdEquiv.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
+    zec: `${zecEquiv.toFixed(4)} ZEC`
+  };
+
   return {
     rail: 'LOCAL_BANK',
     status,
@@ -454,7 +470,7 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
         type: 'NIBSS Instant Payment (NIP)',
         identifier: nibssResult.rawSessionId,
         timestamp: nibssResult.timestampSegment.parsedHuman,
-        protocol: 'CBN Central Clearing Gateway + Zcash Shielded Memo Anchor',
+        protocol: 'CBN Central Clearing Gateway + Zcash Ironwood (NU6.3) Shielded Memo Anchor',
         verified: isNibssValid
       },
       receiver: {
@@ -463,6 +479,7 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
         institution: receiverBankRecord ? receiverBankRecord.shortName : receiverBank,
         amountFormatted: `₦${Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`,
         currency,
+        multiCurrency,
         verified: isGenuine
       }
     },
@@ -479,10 +496,12 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
       proofHash: anchorResult.proofHash,
       zcashTxId: anchorResult.zcashTxId,
       blockHeight: anchorResult.blockHeight,
-      zcashPool: 'ORCHARD',
+      zcashPool: anchorResult.record.zcashPool,
+      zcashPoolDisplay: anchorResult.record.zcashPoolDisplay,
       memoUtf8: anchorResult.memoUtf8,
       memoHex: anchorResult.memoHex,
       memoBytesLength: 512,
+      memoJsonMetadata: anchorResult.memoJsonMetadata,
       claimCount: anchorResult.claimCount,
       firstAnchoredIso: anchorResult.firstVerifiedAtIso,
       isReplayAttack: anchorResult.claimCount > 1,

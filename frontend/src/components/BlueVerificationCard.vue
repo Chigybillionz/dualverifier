@@ -78,7 +78,7 @@
                   : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
               ]"
             >
-              {{ card.rail === 'LOCAL_BANK' ? 'Rail 1: Nigerian Banking (NIBSS) + Zcash Memo' : 'Rail 2: Zcash Shielded & Transparent Verifier' }}
+              {{ card.rail === 'LOCAL_BANK' ? 'Rail 1: Nigerian Banking (NIBSS) + Zcash Ironwood Memo' : 'Rail 2: Zcash Ironwood (NU6.3) Shielded Verifier' }}
             </span>
             <span class="text-xs text-slate-400 font-mono">{{ formatTimestamp(card.timestamp) }}</span>
           </div>
@@ -120,14 +120,35 @@
       </div>
     </div>
 
-    <!-- 2. VISUAL COUNTERPARTY ROUTING PIPELINE (3-COLUMN FLOW) -->
+    <!-- 2. MULTI-CURRENCY CONVERSION BAR -->
+    <div
+      v-if="card.routingPipeline?.receiver?.multiCurrency"
+      class="px-6 py-3 bg-slate-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs font-mono"
+    >
+      <div class="flex items-center space-x-2 text-slate-400">
+        <span class="text-blue-400 font-bold">💱 Multi-Currency Valuation:</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-bold">
+          🇳🇬 {{ card.routingPipeline.receiver.multiCurrency.ngn }}
+        </span>
+        <span class="px-2.5 py-1 rounded-lg bg-blue-950/60 border border-blue-500/30 text-blue-300 font-bold">
+          🇺🇸 {{ card.routingPipeline.receiver.multiCurrency.usd }}
+        </span>
+        <span class="px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-500/30 text-amber-300 font-bold">
+          🛡️ {{ card.routingPipeline.receiver.multiCurrency.zec }}
+        </span>
+      </div>
+    </div>
+
+    <!-- 3. VISUAL COUNTERPARTY ROUTING PIPELINE (3-COLUMN FLOW) -->
     <div class="p-6 border-b border-slate-800 bg-slate-950/40">
       <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
         <span class="flex items-center gap-1.5 font-mono">
           <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
-          Visual Counterparty Routing Pipeline
+          Visual Counterparty Routing Pipeline (Sender ➔ Rail / Ironwood Pool ➔ Receiver)
         </span>
         <span class="text-slate-500 font-mono">Settlement Route</span>
       </div>
@@ -143,7 +164,6 @@
             <span
               v-if="card.routingPipeline.sender.verified"
               class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] border border-emerald-500/30"
-              title="Identity & Bank/Pool Validated"
             >
               ✓
             </span>
@@ -155,12 +175,12 @@
             </span>
           </div>
 
-          <div class="flex items-center space-x-3">
+          <div class="flex items-center space-x-2.5">
             <div
-              class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow"
-              :style="{ backgroundColor: card.routingPipeline.sender.bankLogoColor || '#0047ff' }"
+              class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs text-white shadow-sm"
+              :style="{ backgroundColor: card.routingPipeline.sender.bankLogoColor || '#10b981' }"
             >
-              {{ card.routingPipeline.sender.institution.substring(0, 2).toUpperCase() }}
+              {{ card.rail === 'LOCAL_BANK' ? card.routingPipeline.sender.institution.slice(0, 2) : 'ZC' }}
             </div>
             <div class="min-w-0 flex-1">
               <h4 class="text-sm font-bold text-white truncate">{{ card.routingPipeline.sender.identifier }}</h4>
@@ -169,30 +189,19 @@
           </div>
         </div>
 
-        <!-- Column 2: SETTLEMENT RAIL / POOL TRANSIT -->
-        <div class="relative z-10 p-4 rounded-2xl bg-slate-850/90 border border-slate-750 shadow-md space-y-2 text-center">
+        <!-- Column 2: RAIL / IRONWOOD POOL NODE -->
+        <div class="relative z-10 p-4 rounded-2xl bg-slate-850/90 border border-slate-750 shadow-md space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] font-mono uppercase text-slate-400">Clearing Rail / Pool</span>
-            <span
-              v-if="card.routingPipeline.rail.verified"
-              class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px] border border-blue-500/30"
-            >
-              ✓
-            </span>
-            <span
-              v-else
-              class="w-4 h-4 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-[10px] border border-rose-500/30"
-            >
-              ✗
+            <span class="text-[10px] font-mono uppercase text-slate-400">Settlement Rail / Pool</span>
+            <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px] border border-blue-500/30">
+              ⚡
             </span>
           </div>
 
-          <div class="space-y-0.5">
-            <h4 class="text-xs font-bold text-blue-300 font-mono">{{ card.routingPipeline.rail.type }}</h4>
-            <p class="text-[11px] font-mono text-slate-300 truncate" :title="card.routingPipeline.rail.identifier">
-              {{ card.routingPipeline.rail.identifier }}
-            </p>
-            <p class="text-[10px] text-slate-400 font-mono">{{ card.routingPipeline.rail.timestamp }}</p>
+          <div>
+            <h4 class="text-xs font-bold text-blue-300">{{ card.routingPipeline.rail.type }}</h4>
+            <p class="text-[11px] font-mono text-slate-400 truncate">{{ card.routingPipeline.rail.protocol }}</p>
+            <p class="text-[10px] font-mono text-slate-500 mt-1 truncate">Ref: {{ card.routingPipeline.rail.identifier }}</p>
           </div>
         </div>
 
@@ -232,7 +241,7 @@
       </div>
     </div>
 
-    <!-- 3. FORENSICS & REPLAY ALERTS -->
+    <!-- 4. FORENSICS & REPLAY ALERTS -->
     <div class="p-6 space-y-4">
       <!-- Critical Flags or Warnings Alert Box -->
       <div
@@ -257,7 +266,7 @@
         </ul>
       </div>
 
-      <!-- RAIL 1 SPECIFIC: ZCASH 512-BYTE SHIELDED MEMO ANCHOR CARD -->
+      <!-- RAIL 1 SPECIFIC: ZCASH IRONWOOD 512-BYTE SHIELDED MEMO ANCHOR CARD -->
       <div
         v-if="card.rail === 'LOCAL_BANK' && card.zcashShieldedAnchor"
         class="p-4 rounded-2xl bg-slate-900 border border-blue-500/30 text-xs space-y-3"
@@ -265,10 +274,10 @@
         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
           <div class="flex items-center space-x-2">
             <span class="text-blue-400 font-bold font-mono flex items-center gap-1.5">
-              <span>🛡️ Zcash 512-Byte Shielded Memo Anchor</span>
+              <span>🛡️ Zcash Ironwood (NU6.3) 512-Byte Shielded Memo Anchor</span>
             </span>
             <span class="text-[10px] px-2 py-0.2 rounded-full bg-blue-950 text-blue-300 font-mono border border-blue-800">
-              Orchard Pool (Block #{{ card.zcashShieldedAnchor.blockHeight }})
+              Ironwood Pool (Block #{{ card.zcashShieldedAnchor.blockHeight }})
             </span>
           </div>
 
@@ -301,12 +310,36 @@
 
         <!-- Decrypted 512-Byte Memo Box -->
         <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-          <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-            Zcash Encrypted Note Memo (512-Byte ZIP-302 Payload):
+          <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider flex items-center justify-between">
+            <span>Zcash Encrypted Note Memo (512-Byte ZIP-302 Payload):</span>
+            <button
+              @click="showHexMemo = !showHexMemo"
+              class="text-blue-400 hover:text-blue-300 font-mono font-bold flex items-center gap-1 transition-colors"
+            >
+              <span>{{ showHexMemo ? 'Hide Raw Hex' : '🔍 Inspect 512-Byte Hex Memo' }}</span>
+            </button>
           </div>
           <p class="font-mono text-xs text-slate-200 break-words leading-relaxed">
             {{ card.zcashShieldedAnchor.memoUtf8 }}
           </p>
+        </div>
+
+        <!-- RAW 512-BYTE HEX MEMO INSPECTOR DRAWER -->
+        <div
+          v-if="showHexMemo && card.zcashShieldedAnchor.memoHex"
+          class="p-3.5 rounded-xl bg-slate-950/90 border border-blue-500/40 space-y-2 font-mono"
+        >
+          <div class="flex items-center justify-between text-[10px] text-slate-400">
+            <span class="text-blue-400 font-bold">Raw 512-Byte ZIP-302 Hex Stream (1024 Characters):</span>
+            <span class="text-slate-500">Bytes 0x000 - 0x1ff (Strict Zero-Padded)</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-black/60 border border-slate-800 text-[10px] text-emerald-400/90 break-all leading-tight font-mono max-h-36 overflow-y-auto">
+            {{ card.zcashShieldedAnchor.memoHex }}
+          </div>
+          <div v-if="card.zcashShieldedAnchor.memoJsonMetadata" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
+            <span class="text-slate-500 text-[10px] block mb-1">Decoded Memo JSON Metadata:</span>
+            <pre class="text-[10px] text-blue-300 overflow-x-auto">{{ JSON.stringify(card.zcashShieldedAnchor.memoJsonMetadata, null, 2) }}</pre>
+          </div>
         </div>
       </div>
 
@@ -343,12 +376,21 @@
             <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
               512-Byte Zcash Encrypted Note Memo (ZIP-302)
             </span>
-            <span
-              class="text-[10px] font-mono px-2 py-0.2 rounded"
-              :class="card.zcashDetails.memo.selectiveDisclosureActive ? 'bg-emerald-950 text-emerald-300' : 'bg-slate-800 text-slate-400'"
-            >
-              {{ card.zcashDetails.memo.selectiveDisclosureActive ? 'DECRYPTED' : 'ENCRYPTED CIPHERTEXT' }}
-            </span>
+            <div class="flex items-center space-x-2">
+              <button
+                v-if="card.zcashDetails.memo.rawHex"
+                @click="showHexMemo = !showHexMemo"
+                class="text-[10px] text-blue-400 hover:text-blue-300 font-mono font-bold transition-colors"
+              >
+                {{ showHexMemo ? 'Hide Hex' : '🔍 Inspect Hex Memo' }}
+              </button>
+              <span
+                class="text-[10px] font-mono px-2 py-0.2 rounded"
+                :class="card.zcashDetails.memo.selectiveDisclosureActive ? 'bg-emerald-950 text-emerald-300' : 'bg-slate-800 text-slate-400'"
+              >
+                {{ card.zcashDetails.memo.selectiveDisclosureActive ? 'DECRYPTED' : 'ENCRYPTED CIPHERTEXT' }}
+              </span>
+            </div>
           </div>
 
           <p
@@ -358,10 +400,28 @@
             {{ card.zcashDetails.memo.decryptedText || '[Encrypted 512-byte payload. Supply Unified Viewing Key to reveal invoice & attestation details]' }}
           </p>
         </div>
+
+        <!-- RAW 512-BYTE HEX MEMO INSPECTOR DRAWER (ZCASH RAIL) -->
+        <div
+          v-if="showHexMemo && card.zcashDetails.memo.rawHex"
+          class="p-3.5 rounded-xl bg-slate-950/90 border border-blue-500/40 space-y-2 font-mono"
+        >
+          <div class="flex items-center justify-between text-[10px] text-slate-400">
+            <span class="text-blue-400 font-bold">Raw 512-Byte ZIP-302 Hex Stream (1024 Characters):</span>
+            <span class="text-slate-500">Bytes 0x000 - 0x1ff</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-black/60 border border-slate-800 text-[10px] text-emerald-400/90 break-all leading-tight font-mono max-h-36 overflow-y-auto">
+            {{ card.zcashDetails.memo.rawHex }}
+          </div>
+          <div v-if="card.zcashDetails.memo.memoJsonMetadata" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
+            <span class="text-slate-500 text-[10px] block mb-1">Decoded Memo JSON Metadata:</span>
+            <pre class="text-[10px] text-blue-300 overflow-x-auto">{{ JSON.stringify(card.zcashDetails.memo.memoJsonMetadata, null, 2) }}</pre>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 4. ON-CHAIN ATTESTATION FOOTER & QR CODE -->
+    <!-- 5. ON-CHAIN ATTESTATION FOOTER & QR CODE -->
     <div class="px-6 py-5 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="flex items-center space-x-4 min-w-0 flex-1">
         <!-- Live QR Code -->
@@ -377,7 +437,7 @@
               DualVerifier Protocol v2.0
             </span>
             <span class="text-[10px] text-slate-400">
-              Halo 2 & ZK Privacy
+              Ironwood (NU6.3) & ZK Privacy
             </span>
           </div>
 
@@ -407,12 +467,13 @@ const props = defineProps<{
   card: any;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'open-certificate', card: any): void;
   (e: 'trigger-replay', card: any): void;
 }>();
 
 const copied = ref(false);
+const showHexMemo = ref(false);
 const qrCodeDataUrl = ref('');
 
 function generateQR() {
@@ -444,9 +505,5 @@ function copyProofHash() {
   setTimeout(() => {
     copied.value = false;
   }, 2500);
-}
-
-function printCertificate() {
-  window.print();
 }
 </script>

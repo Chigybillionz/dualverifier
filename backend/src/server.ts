@@ -133,7 +133,7 @@ app.post('/api/verify/zcash', async (req, res) => {
         sender: {
           title: 'Sender Pool (From)',
           identifier: isShielded ? 'Shielded Pool (Halo 2 ZK)' : trace.sender.addressOrPool,
-          institution: isShielded ? 'Zcash Orchard Pool' : 'Transparent (t-addr)',
+          institution: isShielded ? 'Zcash Ironwood (NU6.3) / Orchard' : 'Transparent (t-addr)',
           bankLogoColor: '#3b82f6',
           verified: true
         },
@@ -152,6 +152,7 @@ app.post('/api/verify/zcash', async (req, res) => {
           institution: 'Unified Address (ZIP-316)',
           amountFormatted: trace.amount.displayAmountZec,
           currency: 'ZEC',
+          multiCurrency: trace.amount.multiCurrency,
           verified: true
         }
       },
@@ -169,6 +170,35 @@ app.post('/api/verify/zcash', async (req, res) => {
     console.error('[API /verify/zcash] Error:', err);
     res.status(500).json({ success: false, error: err.message || 'Zcash verification error' });
   }
+});
+
+// Session Audit Ledger / Verified Attestations
+app.get('/api/history', (_req, res) => {
+  const records = zcashMemoRegistry.getAllRecords();
+  const history = records.map(r => ({
+    id: r.proofHash,
+    timestamp: r.firstVerifiedAtIso,
+    rail: r.sessionIdOrTxId.startsWith('0x') || r.sessionIdOrTxId.length === 64 ? 'ZCASH' : 'LOCAL_BANK',
+    sender: r.sender,
+    receiver: r.receiver,
+    amountFormatted: `${r.amount} ${r.currency}`,
+    amount: r.amount,
+    currency: r.currency,
+    memoHash: r.proofHash,
+    zcashTxId: r.zcashAnchorTxId,
+    zcashBlockHeight: r.zcashBlockHeight,
+    zcashPool: r.zcashPool,
+    zcashPoolDisplay: r.zcashPoolDisplay,
+    claimCount: r.claimCount,
+    isReplay: r.isReplay,
+    status: r.claimCount > 1 ? 'DUPLICATE' : 'VERIFIED',
+    badgeTitle: r.claimCount > 1 ? `DUPLICATE (CLAIM #${r.claimCount})` : 'VERIFIED AUTHENTIC',
+    memoUtf8: r.memoUtf8,
+    memoHex: r.memoHex,
+    memoJsonMetadata: r.memoJsonMetadata
+  }));
+
+  res.json({ success: true, history });
 });
 
 // Demo Presets

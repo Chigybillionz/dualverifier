@@ -433,6 +433,34 @@ async function fetchShieldedMemos() {
   }
 }
 
+async function fetchAuditHistory() {
+  try {
+    const res = await fetch('/api/history');
+    const json = await res.json();
+    if (json.success && json.history && json.history.length > 0) {
+      for (const item of json.history) {
+        if (!auditHistoryItems.value.some(h => h.proofHash === item.memoHash)) {
+          auditHistoryItems.value.push({
+            id: `server-${item.id}`,
+            timestamp: item.timestamp,
+            rail: item.rail,
+            sender: item.sender,
+            receiver: item.receiver,
+            amount: item.amountFormatted,
+            currency: item.currency,
+            proofHash: item.memoHash,
+            status: item.status,
+            badgeTitle: item.badgeTitle,
+            fullBlueCard: null
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to load history:', err);
+  }
+}
+
 async function fetchPresets() {
   try {
     const res = await fetch('/api/presets');
@@ -448,6 +476,7 @@ async function fetchPresets() {
 onMounted(() => {
   fetchPresets();
   fetchShieldedMemos();
+  fetchAuditHistory();
 });
 
 function fireConfetti() {
@@ -544,50 +573,66 @@ async function handleVerifyZcash(payload: any) {
 
 function handleSelectPreset(presetId: string) {
   const p = demoPresets.find(item => item.id === presetId);
-  if (!p) {
-    if (presetId === 'preset-valid-gtb-opay') {
-      activeRail.value = 'LOCAL_BANK';
-      localVerifierRef.value?.loadPreset('000013250324114215984716382910', 'Guaranty Trust Bank (GTBank)', 50000);
-    } else if (presetId === 'preset-forged-fake-alert') {
+  if (p) {
+    currentPresetVisual.value = p.receiptVisual || null;
+    if (p.rail === 'LOCAL_BANK') {
       activeRail.value = 'LOCAL_BANK';
       handleVerifyLocal({
         mode: 'json',
-        data: {
-          sessionId: '000014250518143000111111111111',
-          senderBank: 'Guaranty Trust Bank (GTBank)',
-          senderName: 'Adeola Bakare (Spoofed)',
-          receiverBank: 'OPay Digital Services',
-          receiverName: 'Emmanuel Chukwuma (Store Owner)',
-          receiverAccount: '8034567890',
-          amount: 85000,
-          currency: 'NGN',
-          receiptTimestamp: '2025-05-18T14:30:00+01:00',
-          simulatedTamperScore: 24,
-          flaggedSoftware: 'CANVA / APK FAKE RECEIPT BUILDER'
-        }
+        data: p.payload
       });
-    } else if (presetId === 'preset-zcash-shielded-disclosure') {
+    } else {
       activeRail.value = 'ZCASH';
-      zcashVerifierRef.value?.loadPreset(
-        '0x8f4d92a10e7b915c43efb82c31e9c20a4b7e8d6f1a3b5c7e9d0f2a4b6c8e0a12',
-        'u1q4k9n7e8y0t2w4x6m8p0r2s4u6v8x0z2a4c6e8g0j2l4n6q8s0u2w4x6z8a0c2e4g6j8l0n2p4r6t8v0x2z4a6c8e0g2',
-        'uview1q4k9n7e8y0t2w4x6m8p0r2s4u6v8x0z2a4c6e8g0j2l4n6q8s0u2w4x6z8a0c2e4g6j8l0n2p4r6t8v0x2z4a6c8e0g2'
-      );
+      handleVerifyZcash(p.payload);
     }
     return;
   }
 
-  currentPresetVisual.value = p.receiptVisual || null;
-
-  if (p.rail === 'LOCAL_BANK') {
+  // Fallback if presets endpoint not yet cached
+  if (presetId === 'demo-1-valid-gtb-150k' || presetId === 'preset-valid-gtb-opay') {
     activeRail.value = 'LOCAL_BANK';
     handleVerifyLocal({
       mode: 'json',
-      data: p.payload
+      data: {
+        sessionId: '000013260315143022100004998231',
+        senderBank: 'Guaranty Trust Bank (GTBank)',
+        senderName: 'Chibuike Okonkwo',
+        receiverBank: 'OPay Digital Services Limited',
+        receiverName: 'Lekki Gadget Depot Ltd',
+        receiverAccount: '9012345678',
+        amount: 150000,
+        currency: 'NGN',
+        receiptTimestamp: '2026-03-15T14:30:22+01:00',
+        claimantMerchant: 'Lekki Gadget Depot Ltd'
+      }
     });
-  } else {
+  } else if (presetId === 'demo-2-fake-opay-alert' || presetId === 'preset-forged-fake-alert') {
+    activeRail.value = 'LOCAL_BANK';
+    handleVerifyLocal({
+      mode: 'json',
+      data: {
+        sessionId: '000014240101000000111111111111',
+        senderBank: 'Guaranty Trust Bank (GTBank)',
+        senderName: 'Adeola Bakare (Spoofed)',
+        receiverBank: 'OPay Digital Services Limited',
+        receiverName: 'Emmanuel Chukwuma (Store Owner)',
+        receiverAccount: '8034567890',
+        amount: 85000,
+        currency: 'NGN',
+        receiptTimestamp: '2026-11-04T14:30:00+01:00',
+        simulatedTamperScore: 24,
+        flaggedSoftware: 'CANVA / FAKE ALERT APK GENERATOR'
+      }
+    });
+  } else if (presetId === 'demo-3-zcash-shielded-u1' || presetId === 'preset-zcash-shielded-disclosure') {
     activeRail.value = 'ZCASH';
-    handleVerifyZcash(p.payload);
+    handleVerifyZcash({
+      txid: '0xf9b8c2d1e0a987654321fedcba0987654321fedcba0987654321fedcba098765',
+      unifiedAddress: 'u1z0987654321abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef0123456789',
+      viewingKey: 'uview1q8h0e8d7s6a5z4x3c2v1b0n9m8l7k6j5h4g3f2d1s0a9z8y7x6w5v4u3t2r1'
+    });
+  } else if (presetId === 'demo-4-reused-receipt-replay') {
+    handleTriggerReplay();
   }
 }
 
@@ -596,15 +641,16 @@ function handleTriggerReplay() {
   handleVerifyLocal({
     mode: 'json',
     data: {
-      sessionId: '000013250324114215984716382910',
+      sessionId: '000013260315143022100004998231',
       senderBank: 'Guaranty Trust Bank (GTBank)',
       senderName: 'Chibuike Okonkwo',
-      receiverBank: 'OPay Digital Services',
-      receiverName: 'Amina Musa Provisions',
+      receiverBank: 'OPay Digital Services Limited',
+      receiverName: 'Lekki Gadget Depot Ltd',
       receiverAccount: '9012345678',
-      amount: 50000,
+      amount: 150000,
       currency: 'NGN',
-      receiptTimestamp: '2025-03-24T11:42:15+01:00'
+      receiptTimestamp: '2026-03-15T14:30:22+01:00',
+      claimantMerchant: 'Victoria Island Branch (Replay Attempt)'
     }
   });
 }

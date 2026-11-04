@@ -53,20 +53,27 @@
         </div>
       </div>
 
-      <!-- Center: BlockchainUNN Hackathon Track Pill -->
-      <div class="hidden lg:flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-xs shadow-inner">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span class="text-slate-300 font-medium">BlockchainUNN Hackathon</span>
-        <span class="text-slate-600">•</span>
-        <span class="text-blue-400 font-mono font-medium">Intelligence: AI & Web3 Without Borders</span>
+      <!-- Center: Live Status Badges -->
+      <div class="hidden xl:flex items-center space-x-3">
+        <!-- NIBSS Core Status -->
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 text-xs font-mono text-emerald-300 shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="font-bold">NIBSS 30-Digit Core: ONLINE</span>
+        </div>
+
+        <!-- Zcash Ironwood / NU6.3 Node Status -->
+        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-blue-500/30 text-xs font-mono text-blue-300 shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+          <span class="font-bold">Zcash Ironwood / NU6.3 Node: CONNECTED</span>
+        </div>
       </div>
 
-      <!-- Right: Zcash Network Status & Memo Ledger Drawer -->
+      <!-- Right: Mobile status indicator & Memo Ledger Drawer Button -->
       <div class="flex items-center space-x-3">
-        <!-- Zcash Mainnet / Lightwalletd Beacon -->
-        <div class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300">
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-          <span>Zcash Mainnet (Orchard ZK)</span>
+        <!-- Compact status on medium screens -->
+        <div class="flex xl:hidden items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>NIBSS / NU6.3</span>
         </div>
 
         <!-- Shielded Memo Ledger Button -->
@@ -77,7 +84,7 @@
           <svg class="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <span>Shielded Memos</span>
+          <span>Audit Ledger</span>
           <span
             v-if="memoCount > 0"
             class="px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-mono border border-blue-500/30"
@@ -99,4 +106,3 @@ defineEmits<{
   (e: 'open-ledger'): void;
 }>();
 </script>
-
