@@ -306,3 +306,4 @@ function testReplayProtection() {
   emit('close');
 }
 </script>
+

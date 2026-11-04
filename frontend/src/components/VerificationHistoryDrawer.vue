@@ -141,3 +141,4 @@ function formatTime(iso: string) {
   return isNaN(d.getTime()) ? iso : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 </script>
+
