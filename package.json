@@ -1,0 +1,17 @@
+{
+  "name": "dual-verifier-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DualVerifier - Universal Web2 & Web3 Forensic Payment Explorer",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "start": "npm --prefix backend run start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
+
