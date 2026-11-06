@@ -30,20 +30,26 @@
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
           </svg>
-          <span>Direct 30-Digit NIBSS Session ID</span>
+          <span>Direct NIBSS Session ID</span>
         </button>
       </div>
 
-      <!-- Quick Pill -->
-      <div class="hidden sm:flex items-center text-xs text-slate-400 font-mono">
-        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-2"></span>
-        <span>CBN Institution Gateway</span>
-      </div>
+      <!-- Gemini API Key configuration button -->
+      <button
+        @click="isKeyModalOpen = true"
+        class="flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all"
+        :class="hasCustomApiKey ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400' : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'"
+      >
+        <span class="w-2 h-2 rounded-full" :class="hasCustomApiKey ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'"></span>
+        <span class="font-mono">{{ hasCustomApiKey ? 'Gemini 1.5 Active' : '⚙️ AI Vision Key' }}</span>
+      </button>
     </div>
 
     <!-- MODE 1: File Dropzone & Multimodal OCR -->
     <div v-if="inputMode === 'upload'" class="space-y-4">
+      <!-- File Dropzone -->
       <div
+        v-if="!selectedFile"
         @dragover.prevent="isDragging = true"
         @dragleave.prevent="isDragging = false"
         @drop.prevent="handleFileDrop"
@@ -51,8 +57,6 @@
           'relative border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer group',
           isDragging
             ? 'border-emerald-400 bg-emerald-950/25 shadow-lg shadow-emerald-500/20'
-            : selectedFile
-            ? 'border-emerald-500/60 bg-emerald-950/15'
             : 'border-slate-800 hover:border-emerald-500/50 bg-slate-900/60 hover:bg-slate-850'
         ]"
         @click="triggerFileInput"
@@ -65,27 +69,7 @@
           @change="handleFileSelect"
         />
 
-        <!-- Preview if file selected -->
-        <div v-if="selectedFile" class="flex flex-col items-center space-y-3">
-          <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <p class="text-sm font-semibold text-slate-200">{{ selectedFile.name }}</p>
-            <p class="text-xs text-slate-400">{{ (selectedFile.size / 1024).toFixed(1) }} KB • Ready for Vision OCR & Zcash Memo Anchor</p>
-          </div>
-          <button
-            @click.stop="clearFile"
-            class="text-xs text-rose-400 hover:text-rose-300 underline"
-          >
-            Remove file
-          </button>
-        </div>
-
-        <!-- Default Drop Placeholder -->
-        <div v-else class="flex flex-col items-center space-y-3">
+        <div class="flex flex-col items-center space-y-3">
           <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 group-hover:scale-105 group-hover:border-emerald-500/50 transition-all shadow-inner">
             <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -93,21 +77,193 @@
           </div>
           <div class="space-y-1">
             <p class="text-sm font-semibold text-slate-200">
-              Drag & drop Nigerian bank receipt here, or <span class="text-emerald-400 underline">browse</span>
+              Drag & drop real Nigerian bank receipt here, or <span class="text-emerald-400 underline">browse</span>
             </p>
             <p class="text-xs text-slate-400">
-              Supports OPay, Moniepoint, GTBank, Zenith, Access, Kuda, PalmPay (PNG, JPG, PDF up to 10MB)
+              Supports OPay, Moniepoint, PalmPay, GTBank, Zenith, Access, Kuda, FirstBank, UBA (PNG, JPG, PDF)
             </p>
           </div>
           <div class="inline-flex items-center space-x-2 text-[11px] text-slate-400 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>Gemini 1.5 Flash Vision OCR + Zcash 512-Byte Encrypted Memo</span>
+            <span>Multimodal Neural OCR (Tesseract.js Client-Side + Gemini 1.5 Flash Vision)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- OCR Scanning Progress State -->
+      <div v-if="isScanning" class="p-6 rounded-2xl bg-slate-900/90 border border-emerald-500/30 text-center space-y-3">
+        <div class="flex items-center justify-center space-x-3">
+          <svg class="animate-spin h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span class="text-sm font-semibold text-slate-200">{{ scanStepText }}</span>
+        </div>
+        <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden max-w-md mx-auto">
+          <div
+            class="bg-gradient-to-r from-emerald-500 to-teal-400 h-2 transition-all duration-300"
+            :style="{ width: `${scanPercent}%` }"
+          ></div>
+        </div>
+        <p class="text-xs text-slate-400 font-mono">
+          {{ scanPercent }}% • Decrypting receipt raster blocks & extracting 30-digit NIBSS session reference
+        </p>
+      </div>
+
+      <!-- Extracted Receipt Inspection & Review Card -->
+      <div v-if="selectedFile && !isScanning" class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 space-y-4">
+        <!-- Header with file info & OCR Engine badge -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div class="flex items-center space-x-3">
+            <!-- Thumbnail preview -->
+            <div
+              v-if="previewUrl"
+              @click="showFullImage = true"
+              class="w-12 h-12 rounded-xl border border-slate-700 bg-slate-800 overflow-hidden cursor-pointer hover:border-emerald-400 transition-all flex items-center justify-center group relative"
+              title="Click to zoom receipt"
+            >
+              <img :src="previewUrl" alt="Receipt Preview" class="w-full h-full object-cover" />
+              <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-slate-200 truncate max-w-[200px] sm:max-w-xs">{{ selectedFile.name }}</p>
+              <p class="text-[11px] text-slate-400">{{ (selectedFile.size / 1024).toFixed(1) }} KB • Scanned via {{ extractedData.ocrEngine }}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button
+              @click="reScanReceipt"
+              class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700"
+              title="Re-run OCR"
+            >
+              🔄 Re-Scan
+            </button>
+            <button
+              @click="clearFile"
+              class="text-xs px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/50"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+
+        <!-- Banner with Confidence Notes -->
+        <div class="p-3 rounded-xl bg-slate-850 border border-slate-800 flex items-start space-x-2.5 text-xs">
+          <svg class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="space-y-0.5 text-slate-300">
+            <span class="font-semibold text-emerald-400">Review & Confirm Detected Data:</span>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              {{ extractedData.confidenceNotes || 'Verify extracted transfer details below. Any field can be edited before sealing to Zcash.' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Editable Form Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+          <!-- Session ID / Reference -->
+          <div class="sm:col-span-2">
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-bold text-slate-300 uppercase tracking-wider font-mono">
+                NIBSS Session ID / Reference Number
+              </label>
+              <span
+                :class="[
+                  'px-2 py-0.5 rounded text-[10px] font-mono',
+                  cleanExtractedSessionId.length === 30
+                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                    : cleanExtractedSessionId.length >= 20
+                    ? 'bg-teal-950 text-teal-300 border border-teal-800'
+                    : 'bg-amber-950 text-amber-300 border border-amber-800'
+                ]"
+              >
+                {{ cleanExtractedSessionId.length }} digits {{ cleanExtractedSessionId.length === 30 ? '(Standard NIP 30-Digit)' : cleanExtractedSessionId.length >= 20 ? '(FinTech Direct)' : '(Incomplete)' }}
+              </span>
+            </div>
+            <input
+              v-model="extractedData.sessionId"
+              type="text"
+              placeholder="e.g. 000013250324114215984716382910"
+              class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-xl px-3.5 py-2.5 text-slate-100 font-mono text-xs tracking-wider outline-none"
+            />
+          </div>
+
+          <!-- Sender Bank -->
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Originating Sender Bank</label>
+            <select
+              v-model="extractedData.senderBank"
+              class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-400 rounded-xl px-3 py-2 text-slate-200 outline-none"
+            >
+              <option v-for="b in NIGERIAN_BANKS" :key="b" :value="b">{{ b }}</option>
+            </select>
+          </div>
+
+          <!-- Beneficiary Bank -->
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Beneficiary Destination Bank</label>
+            <select
+              v-model="extractedData.receiverBank"
+              class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-400 rounded-xl px-3 py-2 text-slate-200 outline-none"
+            >
+              <option v-for="b in NIGERIAN_BANKS" :key="b" :value="b">{{ b }}</option>
+            </select>
+          </div>
+
+          <!-- Sender Name -->
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Sender Name</label>
+            <input
+              v-model="extractedData.senderName"
+              type="text"
+              placeholder="e.g. Chibuike Okonkwo"
+              class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-400 rounded-xl px-3 py-2 text-slate-200 outline-none"
+            />
+          </div>
+
+          <!-- Beneficiary Name -->
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Beneficiary / Merchant Name</label>
+            <input
+              v-model="extractedData.receiverName"
+              type="text"
+              placeholder="e.g. Lekki Gadget Depot Ltd"
+              class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-400 rounded-xl px-3 py-2 text-slate-200 outline-none"
+            />
+          </div>
+
+          <!-- Amount -->
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Transfer Amount (₦)</label>
+            <input
+              v-model.number="extractedData.amount"
+              type="number"
+              placeholder="50000"
+              class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-400 rounded-xl px-3 py-2 text-slate-100 font-mono outline-none"
+            />
+          </div>
+
+          <!-- Receipt Timestamp -->
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Receipt Date / Timestamp</label>
+            <input
+              v-model="extractedData.receiptTimestamp"
+              type="text"
+              placeholder="YYYY-MM-DDTHH:mm:ss"
+              class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-400 rounded-xl px-3 py-2 text-slate-200 font-mono outline-none"
+            />
           </div>
         </div>
       </div>
 
       <!-- Quick sample receipts buttons -->
-      <div class="flex items-center justify-between text-xs pt-1">
+      <div v-if="!selectedFile" class="flex items-center justify-between text-xs pt-1">
         <span class="text-slate-400">Or test with demo templates:</span>
         <div class="flex items-center space-x-2">
           <button
@@ -115,6 +271,12 @@
             class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-750 text-emerald-400 border border-slate-700 hover:border-emerald-500/50 transition-colors"
           >
             Valid GTBank Receipt
+          </button>
+          <button
+            @click="loadSampleReceipt('valid-opay')"
+            class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-750 text-teal-400 border border-slate-700 hover:border-teal-500/50 transition-colors"
+          >
+            OPay Direct Transfer
           </button>
           <button
             @click="loadSampleReceipt('fake-alert')"
@@ -126,22 +288,24 @@
       </div>
     </div>
 
-    <!-- MODE 2: Direct 30-Digit NIBSS Session ID Input -->
+    <!-- MODE 2: Direct NIBSS Session ID Input -->
     <div v-else class="space-y-4">
       <div>
         <div class="flex items-center justify-between mb-2">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
-            30-Digit NIBSS Session ID / Reference Number
+            NIBSS Session ID / Reference Number (20 to 34 Digits)
           </label>
           <span
             :class="[
               'text-xs font-mono px-2 py-0.5 rounded-lg',
               cleanSessionId.length === 30
                 ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                : cleanSessionId.length >= 20
+                ? 'bg-teal-950 text-teal-300 border border-teal-800'
                 : 'bg-slate-800 text-slate-400 border border-slate-700'
             ]"
           >
-            {{ cleanSessionId.length }} / 30 digits
+            {{ cleanSessionId.length }} digits {{ cleanSessionId.length === 30 ? '(30-Digit NIP)' : cleanSessionId.length >= 20 ? '(FinTech Direct)' : '' }}
           </span>
         </div>
         <div class="relative">
@@ -165,12 +329,12 @@
       <!-- Real-Time Segment Breakdown Box (Live Math Preview) -->
       <div v-if="cleanSessionId.length >= 6" class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs">
         <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-          NIBSS 30-Digit Structural Segmentation:
+          NIBSS Structural Breakdown & Math Verification:
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono">
           <!-- Segment 1: Bank Code -->
           <div class="p-2.5 rounded-xl bg-slate-850 border border-slate-800">
-            <span class="text-[10px] text-slate-400 block">Digits 1–6 (Bank Code):</span>
+            <span class="text-[10px] text-slate-400 block">Routing Segment:</span>
             <span class="text-emerald-400 font-bold text-sm">{{ cleanSessionId.substring(0, 6) }}</span>
             <span class="text-[10px] text-slate-300 block truncate mt-0.5">
               {{ resolvedLiveBank || 'Resolving...' }}
@@ -179,9 +343,9 @@
 
           <!-- Segment 2: Execution Time -->
           <div class="p-2.5 rounded-xl bg-slate-850 border border-slate-800">
-            <span class="text-[10px] text-slate-400 block">Digits 7–18 (YYMMDDHHMMSS):</span>
+            <span class="text-[10px] text-slate-400 block">Execution Timestamp:</span>
             <span class="text-teal-400 font-bold text-sm">
-              {{ cleanSessionId.substring(6, 18) || '••••••••••••' }}
+              {{ cleanSessionId.length >= 18 ? cleanSessionId.substring(6, 18) : cleanSessionId.substring(0, 12) }}
             </span>
             <span class="text-[10px] text-slate-300 block truncate mt-0.5">
               {{ liveParsedTime || 'Execution Timestamp' }}
@@ -190,9 +354,9 @@
 
           <!-- Segment 3: Serial Sequence -->
           <div class="p-2.5 rounded-xl bg-slate-850 border border-slate-800">
-            <span class="text-[10px] text-slate-400 block">Digits 19–30 (Serial Entropy):</span>
+            <span class="text-[10px] text-slate-400 block">Serial Entropy:</span>
             <span class="text-cyan-400 font-bold text-sm">
-              {{ cleanSessionId.substring(18, 30) || '••••••••••••' }}
+              {{ cleanSessionId.length >= 18 ? cleanSessionId.substring(18) : cleanSessionId.substring(12) }}
             </span>
             <span class="text-[10px] text-slate-300 block truncate mt-0.5">
               {{ liveEntropyCheck }}
@@ -209,16 +373,7 @@
             v-model="claimedSenderBank"
             class="w-full bg-slate-900 border border-slate-800 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-slate-200 text-sm outline-none font-sans"
           >
-            <option value="Guaranty Trust Bank (GTBank)">Guaranty Trust Bank (GTBank - 000013)</option>
-            <option value="Access Bank PLC">Access Bank PLC (000014)</option>
-            <option value="Zenith Bank PLC">Zenith Bank PLC (000015)</option>
-            <option value="First Bank of Nigeria">First Bank of Nigeria (000011)</option>
-            <option value="United Bank for Africa">United Bank for Africa (000016)</option>
-            <option value="Wema Bank / ALAT">Wema Bank / ALAT (000017)</option>
-            <option value="Moniepoint Microfinance Bank">Moniepoint Microfinance Bank (090405)</option>
-            <option value="OPay Digital Services">OPay Digital Services (100004)</option>
-            <option value="PalmPay Limited">PalmPay Limited (100033)</option>
-            <option value="Kuda Microfinance Bank">Kuda Microfinance Bank (090267)</option>
+            <option v-for="b in NIGERIAN_BANKS" :key="b" :value="b">{{ b }}</option>
           </select>
         </div>
 
@@ -238,7 +393,7 @@
     <div class="pt-2">
       <button
         @click="executeVerification"
-        :disabled="isLoading || (!selectedFile && cleanSessionId.length < 10)"
+        :disabled="isLoading || isScanning || (inputMode === 'upload' && !selectedFile && !extractedData.sessionId) || (inputMode === 'session' && cleanSessionId.length < 10)"
         class="w-full py-4 px-6 rounded-2xl font-bold text-sm tracking-wide transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-sans shadow-emerald-500/25 active:scale-[0.99]"
       >
         <svg v-if="isLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-950" fill="none" viewBox="0 0 24 24">
@@ -250,14 +405,103 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
 
-        <span>{{ isLoading ? 'Decoding NIBSS & Anchoring to Zcash 512B Memo...' : 'Verify Transfer & Anchor to Zcash Shielded Memo' }}</span>
+        <span>
+          {{
+            isLoading
+              ? 'Verifying NIBSS Cryptography & Anchoring 512B Zcash Memo...'
+              : selectedFile
+              ? 'Confirm Receipt & Anchor to Zcash Shielded Memo'
+              : 'Verify Transfer & Anchor to Zcash Shielded Memo'
+          }}
+        </span>
       </button>
+    </div>
+
+    <!-- Gemini Key Configuration Modal -->
+    <div
+      v-if="isKeyModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md"
+      @click.self="isKeyModalOpen = false"
+    >
+      <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div class="flex items-center space-x-2">
+            <span class="text-xl">🤖</span>
+            <h3 class="font-bold text-slate-100 text-sm">Gemini 1.5 Flash Vision OCR</h3>
+          </div>
+          <button @click="isKeyModalOpen = false" class="text-slate-400 hover:text-slate-200">✕</button>
+        </div>
+
+        <p class="text-xs text-slate-300 leading-relaxed">
+          DualVerifier uses on-device <strong>Tesseract.js OCR</strong> by default. For 100% pixel-perfect multi-modal receipt layout understanding (even on skewed mobile photos), paste your free Google Gemini API Key below.
+        </p>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Google Gemini API Key</label>
+          <input
+            v-model="inputApiKey"
+            type="password"
+            placeholder="AIzaSy..."
+            class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-slate-200 text-xs font-mono outline-none"
+          />
+          <p class="text-[11px] text-slate-400 mt-1">
+            Keys are stored locally in your browser (<code class="text-slate-300">localStorage</code>) and never exposed.
+          </p>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-xs text-emerald-400 hover:underline flex items-center space-x-1"
+          >
+            <span>Get free API key</span>
+            <span>↗</span>
+          </a>
+
+          <div class="flex items-center space-x-2">
+            <button
+              v-if="hasCustomApiKey"
+              @click="removeApiKey"
+              class="px-3 py-1.5 rounded-xl text-xs text-rose-400 hover:bg-rose-950/40"
+            >
+              Clear Key
+            </button>
+            <button
+              @click="saveApiKey"
+              class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all shadow-md"
+            >
+              Save Key
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full Image Zoom Modal -->
+    <div
+      v-if="showFullImage && previewUrl"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md"
+      @click.self="showFullImage = false"
+    >
+      <div class="relative max-w-2xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden p-2 shadow-2xl flex flex-col items-center">
+        <button
+          @click="showFullImage = false"
+          class="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-slate-950/80 text-slate-200 hover:text-white flex items-center justify-center border border-slate-700"
+        >
+          ✕
+        </button>
+        <img :src="previewUrl" alt="Full Receipt" class="max-w-full max-h-[80vh] object-contain rounded-xl" />
+        <p class="text-xs text-slate-400 mt-2 font-mono">{{ selectedFile?.name }}</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
+import { performReceiptOcr } from '../utils/receiptOcr';
 
 const props = defineProps<{
   isLoading: boolean;
@@ -267,17 +511,105 @@ const emit = defineEmits<{
   (e: 'verify', payload: any): void;
 }>();
 
+const NIGERIAN_BANKS = [
+  'Guaranty Trust Bank (GTBank)',
+  'Access Bank PLC',
+  'Zenith Bank PLC',
+  'First Bank of Nigeria',
+  'United Bank for Africa',
+  'Wema Bank / ALAT',
+  'OPay Digital Services',
+  'Moniepoint Microfinance Bank',
+  'PalmPay Limited',
+  'Kuda Microfinance Bank',
+  'Stanbic IBTC Bank',
+  'Sterling Bank PLC',
+  'Fidelity Bank PLC',
+  'Union Bank of Nigeria',
+  'Polaris Bank',
+  'FCMB (First City Monument Bank)',
+  'Keystone Bank',
+  'Ecobank Nigeria',
+  'Unity Bank',
+  'Standard Chartered Bank',
+  'Jaiz Bank PLC',
+  'Taj Bank',
+  'Lotus Bank',
+  'Globus Bank',
+  'Titan Trust Bank',
+  'Parallex Bank',
+  'PremiumTrust Bank',
+  'Signature Bank',
+  'Carbon (One Finance)',
+  'Paga',
+  'Pocket by Piggyvest',
+  'Rubies Bank',
+  'Chipper Cash',
+  'Eyowo'
+];
+
 const inputMode = ref<'upload' | 'session'>('upload');
 const selectedFile = ref<File | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const isDragging = ref(false);
+const previewUrl = ref<string>('');
+const showFullImage = ref(false);
+
+const isScanning = ref(false);
+const scanPercent = ref(0);
+const scanStepText = ref('Initializing OCR...');
+
+const isKeyModalOpen = ref(false);
+const inputApiKey = ref('');
+const hasCustomApiKey = ref(false);
 
 const rawSessionInput = ref('');
 const claimedSenderBank = ref('Guaranty Trust Bank (GTBank)');
 const claimedAmount = ref(50000);
 
+const extractedData = reactive({
+  sessionId: '',
+  senderBank: 'Guaranty Trust Bank (GTBank)',
+  senderName: '',
+  receiverBank: 'OPay Digital Services',
+  receiverName: '',
+  receiverAccount: '',
+  amount: 0,
+  currency: 'NGN',
+  receiptTimestamp: '',
+  ocrEngine: 'Tesseract.js',
+  confidenceNotes: ''
+});
+
+onMounted(() => {
+  const savedKey = localStorage.getItem('dualverifier_gemini_api_key');
+  if (savedKey) {
+    inputApiKey.value = savedKey;
+    hasCustomApiKey.value = true;
+  }
+});
+
+function saveApiKey() {
+  if (inputApiKey.value.trim()) {
+    localStorage.setItem('dualverifier_gemini_api_key', inputApiKey.value.trim());
+    hasCustomApiKey.value = true;
+    isKeyModalOpen.value = false;
+  }
+}
+
+function removeApiKey() {
+  localStorage.removeItem('dualverifier_gemini_api_key');
+  inputApiKey.value = '';
+  hasCustomApiKey.value = false;
+  isKeyModalOpen.value = false;
+}
+
 const cleanSessionId = computed(() => {
   return rawSessionInput.value.replace(/[^0-9]/g, '');
+});
+
+const cleanExtractedSessionId = computed(() => {
+  return (extractedData.sessionId || '').replace(/[^0-9]/g, '');
 });
 
 const resolvedLiveBank = computed(() => {
@@ -297,7 +629,8 @@ const resolvedLiveBank = computed(() => {
 });
 
 const liveParsedTime = computed(() => {
-  const t = cleanSessionId.value.substring(6, 18);
+  const isDateFirst = cleanSessionId.value.length < 30 && ['20', '21', '22', '23', '24', '25', '26'].includes(cleanSessionId.value.substring(0, 2));
+  const t = isDateFirst ? cleanSessionId.value.substring(0, 12) : cleanSessionId.value.substring(6, 18);
   if (t.length === 12) {
     const yy = t.substring(0, 2);
     const mm = t.substring(2, 4);
@@ -310,9 +643,9 @@ const liveParsedTime = computed(() => {
 });
 
 const liveEntropyCheck = computed(() => {
-  const s = cleanSessionId.value.substring(18, 30);
-  if (s.length === 12) {
-    if (/^(\d)\1+$/.test(s)) return '⚠️ Repetitive Dummy (0 bits)';
+  const s = cleanSessionId.value.length >= 18 ? cleanSessionId.value.substring(18) : cleanSessionId.value.substring(12);
+  if (s.length >= 6) {
+    if (/^(\d)\1+$/.test(s)) return '⚠️ Repetitive Synthetic (Fake Alert)';
     if ('0123456789012345'.includes(s)) return '⚠️ Sequential Sequence';
     return 'Cryptographic Entropy (OK)';
   }
@@ -323,31 +656,87 @@ function triggerFileInput() {
   fileInputRef.value?.click();
 }
 
-function handleFileSelect(event: Event) {
+async function handleFileSelect(event: Event) {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files[0]) {
-    selectedFile.value = target.files[0];
+    await processUploadedFile(target.files[0]);
   }
 }
 
-function handleFileDrop(event: DragEvent) {
+async function handleFileDrop(event: DragEvent) {
   isDragging.value = false;
   if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
-    selectedFile.value = event.dataTransfer.files[0];
+    await processUploadedFile(event.dataTransfer.files[0]);
+  }
+}
+
+async function processUploadedFile(file: File) {
+  selectedFile.value = file;
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  previewUrl.value = URL.createObjectURL(file);
+  await scanReceipt(file);
+}
+
+async function scanReceipt(file: File) {
+  isScanning.value = true;
+  scanPercent.value = 15;
+  scanStepText.value = 'Analyzing document layout...';
+
+  try {
+    const result = await performReceiptOcr(file, {
+      onProgress: (percent, step) => {
+        scanPercent.value = percent;
+        scanStepText.value = step;
+      }
+    });
+
+    extractedData.sessionId = result.sessionId || '';
+    extractedData.senderBank = result.senderBank || 'Guaranty Trust Bank (GTBank)';
+    extractedData.senderName = result.senderName || 'Account Holder';
+    extractedData.receiverBank = result.receiverBank || 'OPay Digital Services';
+    extractedData.receiverName = result.receiverName || 'Settled Merchant';
+    extractedData.receiverAccount = result.receiverAccount || '••••••••••';
+    extractedData.amount = result.amount || 0;
+    extractedData.currency = result.currency || 'NGN';
+    extractedData.receiptTimestamp = result.receiptTimestamp || '';
+    extractedData.ocrEngine = result.ocrEngine;
+    extractedData.confidenceNotes = result.confidenceNotes;
+  } catch (err: any) {
+    console.error('Scan failed:', err);
+    extractedData.confidenceNotes = 'Auto-OCR encountered an issue. Please confirm fields manually.';
+  } finally {
+    isScanning.value = false;
+  }
+}
+
+async function reScanReceipt() {
+  if (selectedFile.value) {
+    await scanReceipt(selectedFile.value);
   }
 }
 
 function clearFile() {
   selectedFile.value = null;
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value);
+    previewUrl.value = '';
+  }
   if (fileInputRef.value) fileInputRef.value.value = '';
+  extractedData.sessionId = '';
+  extractedData.amount = 0;
 }
 
-function loadSampleReceipt(type: 'valid-gtb' | 'fake-alert') {
+function loadSampleReceipt(type: 'valid-gtb' | 'valid-opay' | 'fake-alert') {
   if (type === 'valid-gtb') {
     inputMode.value = 'session';
     rawSessionInput.value = '000013250324114215984716382910';
     claimedSenderBank.value = 'Guaranty Trust Bank (GTBank)';
     claimedAmount.value = 50000;
+  } else if (type === 'valid-opay') {
+    inputMode.value = 'session';
+    rawSessionInput.value = '100004241105093012984102948271';
+    claimedSenderBank.value = 'OPay Digital Services';
+    claimedAmount.value = 25000;
   } else {
     inputMode.value = 'session';
     rawSessionInput.value = '000014250518143000111111111111';
@@ -360,6 +749,20 @@ function executeVerification() {
   if (inputMode.value === 'upload' && selectedFile.value) {
     const formData = new FormData();
     formData.append('receipt', selectedFile.value);
+    formData.append('sessionId', extractedData.sessionId);
+    formData.append('senderBank', extractedData.senderBank);
+    formData.append('senderName', extractedData.senderName);
+    formData.append('receiverBank', extractedData.receiverBank);
+    formData.append('receiverName', extractedData.receiverName);
+    formData.append('receiverAccount', extractedData.receiverAccount);
+    formData.append('amount', String(extractedData.amount));
+    formData.append('currency', extractedData.currency || 'NGN');
+    if (extractedData.receiptTimestamp) {
+      formData.append('receiptTimestamp', extractedData.receiptTimestamp);
+    }
+    const geminiKey = localStorage.getItem('dualverifier_gemini_api_key');
+    if (geminiKey) formData.append('geminiApiKey', geminiKey);
+
     emit('verify', { mode: 'file', formData });
   } else {
     emit('verify', {

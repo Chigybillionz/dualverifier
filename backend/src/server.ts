@@ -34,10 +34,28 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+// 0. OCR Receipt Extraction Endpoint (Allows frontend inspection before verification)
+app.post('/api/ocr/extract', upload.single('receipt'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ success: false, error: 'No receipt file uploaded' });
+      return;
+    }
+    const customApiKey = (req.headers['x-gemini-key'] as string) || req.body.geminiApiKey || process.env.GEMINI_API_KEY;
+    const extracted = await extractReceiptFromImage(file.buffer, file.mimetype, file.originalname, customApiKey);
+    res.json({ success: true, extracted });
+  } catch (err: any) {
+    console.error('[API /ocr/extract] Error:', err);
+    res.status(500).json({ success: false, error: err.message || 'OCR extraction failed' });
+  }
+});
+
 // 1. Rail 1: Local Bank Receipt Verifier (NIBSS + Zcash Shielded Memo Anchor)
 app.post('/api/verify/local', upload.single('receipt'), async (req, res) => {
   try {
     const file = req.file;
+    const customApiKey = (req.headers['x-gemini-key'] as string) || req.body.geminiApiKey || process.env.GEMINI_API_KEY;
     let {
       sessionId,
       senderBank,
@@ -53,7 +71,7 @@ app.post('/api/verify/local', upload.single('receipt'), async (req, res) => {
     } = req.body;
 
     if (file) {
-      const extracted = await extractReceiptFromImage(file.buffer, file.mimetype, file.originalname);
+      const extracted = await extractReceiptFromImage(file.buffer, file.mimetype, file.originalname, customApiKey);
       sessionId = sessionId || extracted.sessionId;
       senderBank = senderBank || extracted.senderBank;
       senderName = senderName || extracted.senderName;
