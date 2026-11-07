@@ -1,36 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --zcash-gold: #F4B728;
+    --zcash-gold-glow: rgba(244, 183, 40, 0.25);
+    --bg-obsidian: #120e12;
+    --bg-card: #191419;
+    --bg-card-elevated: #211b22;
+    --border-subtle: #2d242f;
+  }
+
   body {
-    background-color: #05070e;
-    color: #e2e8f0;
+    background-color: #120e12;
+    color: #f3f0f4;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, .font-serif-heading {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
   }
 }
 
-/* Glassmorphism styling */
-.glass-panel {
-  background: rgba(13, 19, 36, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(31, 45, 82, 0.6);
+/* Zcash Official Clean Architectural Aesthetic */
+.zcash-obsidian-bg {
+  background: radial-gradient(circle at 50% 0%, #1e1620 0%, #120e12 65%, #0d0a0d 100%);
 }
 
-.glass-panel-glow {
-  background: rgba(13, 19, 36, 0.85);
+.zcash-panel {
+  background: rgba(26, 21, 27, 0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 240, 255, 0.3);
-  box-shadow: 0 0 30px -10px rgba(0, 240, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-/* Cyber grid background */
-.cyber-grid {
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 32px 32px;
+.zcash-panel-gold {
+  background: rgba(26, 21, 27, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(244, 183, 40, 0.3);
+  box-shadow: 0 0 40px -10px rgba(244, 183, 40, 0.15);
+}
+
+/* Segmented Tab Switcher (Inspired directly by official z.cash) */
+.zcash-tab-bar {
+  display: inline-flex;
+  border: 1px solid #2d242f;
+  background-color: rgba(18, 14, 18, 0.9);
+}
+
+.zcash-tab-item {
+  padding: 0.75rem 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #a89fa9;
+  border-right: 1px solid #2d242f;
+  transition: all 0.2s ease-in-out;
+}
+
+.zcash-tab-item:last-child {
+  border-right: none;
+}
+
+.zcash-tab-item:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.zcash-tab-item.active {
+  color: #F4B728;
+  border-bottom: 2px solid #F4B728;
+  background-color: rgba(244, 183, 40, 0.05);
+}
+
+/* High-Contrast Hero Big-Number Card ($1248.89 style) */
+.zcash-hero-card {
+  background: #ffffff;
+  color: #120e12;
+  box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.5), 0 0 40px rgba(244, 183, 40, 0.1);
+  border-radius: 1rem;
+}
+
+.zcash-hero-card-dark {
+  background: linear-gradient(180deg, #221a24 0%, #171219 100%);
+  border: 1px solid rgba(244, 183, 40, 0.25);
+  box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.6);
+  border-radius: 1rem;
 }
 
 /* Custom scrollbars */
@@ -40,16 +107,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d19;
+  background: #120e12;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1f2d52;
+  background: #2d242f;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00d2ff;
+  background: #F4B728;
 }
 
 /* Print styling for Tamper-Proof Certificate export */
@@ -66,9 +133,8 @@
   }
   .blue-card-print {
     box-shadow: none !important;
-    border: 2px solid #0052ff !important;
+    border: 2px solid #F4B728 !important;
     background: #ffffff !important;
     color: #000000 !important;
   }
 }
-

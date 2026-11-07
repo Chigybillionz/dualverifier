@@ -1,47 +1,33 @@
 <template>
-  <div class="inline-flex p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl backdrop-blur-xl">
-    <!-- Mode 1: Local Bank Verifier (Emerald Theme) -->
+  <div class="inline-flex border border-[#2d242f] bg-[#120e12] rounded-none overflow-hidden shadow-lg">
+    <!-- Mode 1: Local Bank Verifier (NIBSS) -->
     <button
       @click="$emit('update:mode', 'LOCAL_BANK')"
       :class="[
-        'px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 flex items-center space-x-2.5',
+        'px-6 py-3 text-xs font-mono font-bold uppercase tracking-widest transition-all duration-200 flex items-center space-x-2 border-r border-[#2d242f]',
         mode === 'LOCAL_BANK'
-          ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/25 scale-[1.02]'
-          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          ? 'bg-[#F4B728]/10 text-[#F4B728] border-b-2 border-b-[#F4B728]'
+          : 'text-stone-400 hover:text-white hover:bg-white/5 border-b-2 border-b-transparent'
       ]"
     >
-      <span class="text-base">🏦</span>
-      <span>Local Bank Verifier (NIBSS)</span>
-      <span
-        :class="[
-          'text-[10px] px-2 py-0.5 rounded-full font-mono font-bold',
-          mode === 'LOCAL_BANK' ? 'bg-emerald-950/80 text-emerald-300' : 'bg-slate-800 text-slate-400'
-        ]"
-      >
-        Web2 Rail
-      </span>
+      <span class="w-2 h-2 rounded-full" :class="mode === 'LOCAL_BANK' ? 'bg-[#F4B728]' : 'bg-stone-600'"></span>
+      <span>NIBSS Bank Receipt</span>
+      <span class="text-[10px] opacity-75 font-normal">(Web2)</span>
     </button>
 
-    <!-- Mode 2: Zcash On-Chain Verifier (Electric Royal Blue & Amber Theme) -->
+    <!-- Mode 2: Zcash On-Chain Verifier -->
     <button
       @click="$emit('update:mode', 'ZCASH')"
       :class="[
-        'px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 flex items-center space-x-2.5',
+        'px-6 py-3 text-xs font-mono font-bold uppercase tracking-widest transition-all duration-200 flex items-center space-x-2',
         mode === 'ZCASH'
-          ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-amber-500 text-white shadow-lg shadow-blue-500/25 scale-[1.02]'
-          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          ? 'bg-[#F4B728]/10 text-[#F4B728] border-b-2 border-b-[#F4B728]'
+          : 'text-stone-400 hover:text-white hover:bg-white/5 border-b-2 border-b-transparent'
       ]"
     >
-      <span class="text-base">🛡️</span>
-      <span>Zcash Shielded Explorer (ZEC)</span>
-      <span
-        :class="[
-          'text-[10px] px-2 py-0.5 rounded-full font-mono font-bold',
-          mode === 'ZCASH' ? 'bg-blue-950/80 text-amber-300' : 'bg-slate-800 text-slate-400'
-        ]"
-      >
-        Orchard ZK
-      </span>
+      <span class="w-2 h-2 rounded-full" :class="mode === 'ZCASH' ? 'bg-[#F4B728]' : 'bg-stone-600'"></span>
+      <span>Zcash Shielded Pool</span>
+      <span class="text-[10px] opacity-75 font-normal">(Ironwood ZK)</span>
     </button>
   </div>
 </template>
@@ -55,4 +41,3 @@ defineEmits<{
   (e: 'update:mode', mode: 'LOCAL_BANK' | 'ZCASH'): void;
 }>();
 </script>
-

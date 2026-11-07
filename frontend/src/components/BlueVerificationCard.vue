@@ -4,11 +4,11 @@
     :class="[
       card.status === 'VERIFIED'
         ? card.rail === 'LOCAL_BANK'
-          ? 'bg-slate-900/95 border-emerald-500/50 shadow-emerald-500/15'
-          : 'bg-slate-900/95 border-blue-500/50 shadow-blue-500/15'
+          ? 'bg-[#191419] border-emerald-500/50 shadow-emerald-500/10'
+          : 'bg-[#191419] border-[#F4B728]/50 shadow-[#F4B728]/10'
         : card.status === 'DUPLICATE'
-        ? 'bg-slate-900/95 border-amber-500/60 shadow-amber-500/20'
-        : 'bg-slate-900/95 border-rose-500/60 shadow-rose-500/20'
+        ? 'bg-[#191419] border-amber-500/60 shadow-amber-500/20'
+        : 'bg-[#191419] border-rose-500/60 shadow-rose-500/20'
     ]"
   >
     <!-- Background glowing ambient halo -->
@@ -16,7 +16,7 @@
       class="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl pointer-events-none opacity-20 -mr-20 -mt-20"
       :class="[
         card.status === 'VERIFIED'
-          ? card.rail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-blue-500'
+          ? card.rail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-[#F4B728]'
           : card.status === 'DUPLICATE'
           ? 'bg-amber-400'
           : 'bg-rose-500'
@@ -30,7 +30,7 @@
         card.status === 'VERIFIED'
           ? card.rail === 'LOCAL_BANK'
             ? 'bg-emerald-950/40 border-emerald-500/30'
-            : 'bg-blue-950/40 border-blue-500/30'
+            : 'bg-[#251d18] border-[#F4B728]/30'
           : card.status === 'DUPLICATE'
           ? 'bg-amber-950/40 border-amber-500/30'
           : 'bg-rose-950/40 border-rose-500/30'
@@ -44,7 +44,7 @@
             card.status === 'VERIFIED'
               ? card.rail === 'LOCAL_BANK'
                 ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/40'
-                : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-blue-500/40'
+                : 'bg-[#F4B728] text-black shadow-[#F4B728]/40'
               : card.status === 'DUPLICATE'
               ? 'bg-amber-500 text-slate-950 shadow-amber-500/40 animate-pulse'
               : 'bg-rose-500 text-white shadow-rose-500/40'
@@ -72,22 +72,22 @@
                 card.status === 'VERIFIED'
                   ? card.rail === 'LOCAL_BANK'
                     ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                    : 'bg-blue-950 text-blue-300 border border-blue-800'
+                    : 'bg-[#F4B728]/15 text-[#F4B728] border border-[#F4B728]/40'
                   : card.status === 'DUPLICATE'
                   ? 'bg-amber-950 text-amber-300 border border-amber-800'
                   : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
               ]"
             >
-              {{ card.rail === 'LOCAL_BANK' ? 'Rail 1: Nigerian Banking (NIBSS) + Zcash Ironwood Memo' : 'Rail 2: Zcash Ironwood (NU6.3) Shielded Verifier' }}
+              {{ card.rail === 'LOCAL_BANK' ? 'Rail 1: NIBSS Settlement + Zcash Ironwood Memo' : 'Rail 2: Zcash Ironwood (NU6.3) Shielded Explorer' }}
             </span>
-            <span class="text-xs text-slate-400 font-mono">{{ formatTimestamp(card.timestamp) }}</span>
+            <span class="text-xs text-stone-400 font-mono">{{ formatTimestamp(card.timestamp) }}</span>
           </div>
 
           <h2
             class="text-lg sm:text-xl font-extrabold tracking-tight mt-1"
             :class="[
               card.status === 'VERIFIED'
-                ? card.rail === 'LOCAL_BANK' ? 'text-emerald-300' : 'text-blue-300'
+                ? card.rail === 'LOCAL_BANK' ? 'text-emerald-300' : 'text-[#F4B728]'
                 : card.status === 'DUPLICATE'
                 ? 'text-amber-300'
                 : 'text-rose-400'
@@ -102,17 +102,17 @@
       <div class="flex items-center space-x-2 no-print">
         <button
           @click="$emit('open-certificate', card)"
-          class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-blue-500/20 active:scale-95 transition-all"
+          class="px-3.5 py-2 rounded-xl bg-[#F4B728] hover:bg-[#e0a620] text-black text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-[#F4B728]/20 active:scale-95 transition-all uppercase tracking-wider"
           title="Open and print tamper-proof official cryptographic certificate"
         >
-          <span>📜 Export Official Certificate</span>
+          <span>📜 Official Certificate</span>
         </button>
 
         <button
           @click="copyProofHash"
-          class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 hover:border-blue-500/50 text-xs font-medium flex items-center space-x-1.5 transition-colors"
+          class="px-3 py-2 rounded-xl bg-[#120e12] hover:bg-[#1f1720] text-stone-200 border border-[#2d242f] hover:border-[#F4B728]/50 text-xs font-mono font-medium flex items-center space-x-1.5 transition-colors"
         >
-          <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-4 h-4 text-[#F4B728]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
           <span>{{ copied ? 'Copied Hash!' : 'Copy Hash' }}</span>
@@ -120,13 +120,32 @@
       </div>
     </div>
 
+    <!-- 1b. HIGH-CONTRAST BIG-NUMBER HERO METRIC DISPLAY (Inspired by z.cash $1248.89 card) -->
+    <div class="px-6 py-6 bg-[#120e12] border-b border-[#2d242f]">
+      <div class="max-w-lg mx-auto p-8 rounded-xl bg-white text-stone-950 shadow-2xl border border-stone-200 text-center">
+        <div class="text-[10px] font-mono font-bold uppercase tracking-widest text-stone-500 mb-1">
+          Settlement Attestation Confirmed
+        </div>
+        <div class="text-4xl sm:text-5xl font-extrabold tracking-tight font-sans text-stone-950 py-1">
+          {{ card.routingPipeline?.receiver?.amountFormatted || '₦0.00' }}
+        </div>
+        <div class="flex items-center justify-center space-x-2 mt-2 text-xs font-mono font-bold text-emerald-600">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Zero-Knowledge Validated • ZIP-302 Shielded Seal</span>
+        </div>
+        <div class="text-[10px] text-stone-400 mt-2 font-mono truncate">
+          Proof Hash: {{ card.proofHash }}
+        </div>
+      </div>
+    </div>
+
     <!-- 2. MULTI-CURRENCY CONVERSION BAR -->
     <div
       v-if="card.routingPipeline?.receiver?.multiCurrency"
-      class="px-6 py-3 bg-slate-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs font-mono"
+      class="px-6 py-3 bg-[#161116] border-b border-[#2d242f] flex flex-wrap items-center justify-between gap-3 text-xs font-mono"
     >
-      <div class="flex items-center space-x-2 text-slate-400">
-        <span class="text-blue-400 font-bold">💱 Multi-Currency Valuation:</span>
+      <div class="flex items-center space-x-2 text-stone-400">
+        <span class="text-[#F4B728] font-bold">💱 Multi-Currency Valuation:</span>
       </div>
       <div class="flex flex-wrap items-center gap-3">
         <span class="px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-bold">
@@ -135,14 +154,14 @@
         <span class="px-2.5 py-1 rounded-lg bg-blue-950/60 border border-blue-500/30 text-blue-300 font-bold">
           🇺🇸 {{ card.routingPipeline.receiver.multiCurrency.usd }}
         </span>
-        <span class="px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-500/30 text-amber-300 font-bold">
+        <span class="px-2.5 py-1 rounded-lg bg-[#F4B728]/15 border border-[#F4B728]/30 text-[#F4B728] font-bold">
           🛡️ {{ card.routingPipeline.receiver.multiCurrency.zec }}
         </span>
       </div>
     </div>
 
     <!-- 3. VISUAL COUNTERPARTY ROUTING PIPELINE (3-COLUMN FLOW) -->
-    <div class="p-6 border-b border-slate-800 bg-slate-950/40">
+    <div class="p-6 border-b border-[#2d242f] bg-[#141015]">
       <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
         <span class="flex items-center gap-1.5 font-mono">
           <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

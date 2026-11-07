@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-500 selection:text-white antialiased">
-    <!-- Navbar with Interlocking Shield Logo -->
+  <div class="min-h-screen bg-[#120e12] zcash-obsidian-bg text-[#f3f0f4] flex flex-col font-sans selection:bg-[#F4B728] selection:text-black antialiased">
+    <!-- Navbar with Zcash Emblem & Dual-Rail Branding -->
     <NavbarLogo :memoCount="shieldedMemos.length" @open-ledger="isLedgerOpen = true" />
 
-    <!-- 3-Minute Hackathon Demo Preset Bar -->
+    <!-- Hackathon Stage Test Vectors -->
     <DemoPresetBar
       @select-preset="handleSelectPreset"
       @trigger-replay="handleTriggerReplay"
@@ -11,24 +11,24 @@
 
     <!-- Main Content Container -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-      <!-- Hero Banner & Mode Toggle -->
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-800 pb-6">
-        <div class="space-y-2">
-          <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="text-slate-300">Dual-Rail Forensic Architecture:</span>
-            <span class="text-blue-400 font-bold">NIBSS + Zcash Shielded Memos</span>
-          </div>
-          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-sans">
-            Privacy-Preserving <span class="bg-gradient-to-r from-emerald-400 via-blue-400 to-amber-400 bg-clip-text text-transparent">Transaction Verifier</span>
-          </h2>
-          <p class="text-sm text-slate-400 max-w-2xl leading-relaxed">
-            Verify Nigerian banking receipts with deterministic NIBSS mathematics and anchor anti-double-spend proofs inside 512-byte Zcash Encrypted Memos, or inspect Zcash Shielded Orchard notes via Selective Disclosure.
-          </p>
+      <!-- Hero Banner & Segmented Mode Switcher (z.cash aesthetic) -->
+      <div id="verifier-section" class="flex flex-col items-center text-center space-y-5 pb-8 border-b border-[#2d242f]">
+        <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-[#191419] border border-[#2d242f] text-xs font-mono">
+          <span class="w-2 h-2 rounded-full bg-[#F4B728] animate-pulse"></span>
+          <span class="text-stone-300">Dual-Rail Settlement Engine:</span>
+          <span class="text-[#F4B728] font-bold">NIBSS + Zcash Shielded Memos</span>
         </div>
 
-        <!-- Mode Toggle Switcher -->
-        <div>
+        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-serif text-white tracking-tight font-normal">
+          Transaction Verification
+        </h1>
+
+        <p class="text-sm sm:text-base text-stone-400 max-w-2xl leading-relaxed">
+          The DualVerifier network unifies Web2 NIBSS banking settlement mathematics with Web3 Zcash Ironwood (NU6.3) Encrypted Memos and Selective Disclosure.
+        </p>
+
+        <!-- Segmented Tab Switcher (Directly inspired by z.cash) -->
+        <div class="pt-2">
           <ModeToggle v-model:mode="activeRail" />
         </div>
       </div>
@@ -37,21 +37,21 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <!-- LEFT COLUMN: Verifier Input Command Center (5 cols) -->
         <div class="lg:col-span-5 space-y-6">
-          <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <!-- Accent Top Line -->
+          <div class="bg-[#191419] border border-[#2d242f] rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+            <!-- Accent Top Line in Zcash Gold -->
             <div
               class="absolute top-0 left-0 right-0 h-1 transition-all duration-300"
-              :class="activeRail === 'LOCAL_BANK' ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-400'"
+              :class="activeRail === 'LOCAL_BANK' ? 'bg-gradient-to-r from-emerald-500 to-[#F4B728]' : 'bg-gradient-to-r from-[#F4B728] via-amber-400 to-blue-500'"
             ></div>
 
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center space-x-2">
                 <span
                   class="w-2.5 h-2.5 rounded-full animate-pulse"
-                  :class="activeRail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-blue-400'"
+                  :class="activeRail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-[#F4B728]'"
                 ></span>
-                <h3 class="text-base font-bold text-white">
-                  {{ activeRail === 'LOCAL_BANK' ? 'Rail 1: Local Bank Receipt Verifier' : 'Rail 2: Zcash On-Chain Verifier' }}
+                <h3 class="text-sm font-bold uppercase tracking-wider font-mono text-white">
+                  {{ activeRail === 'LOCAL_BANK' ? 'Rail 1: NIBSS Bank Receipt Verifier' : 'Rail 2: Zcash On-Chain Verifier' }}
                 </h3>
               </div>
 
@@ -59,7 +59,7 @@
               <button
                 v-if="activeRail === 'LOCAL_BANK' && currentPresetVisual"
                 @click="isReceiptModalOpen = true"
-                class="text-xs text-emerald-400 hover:text-emerald-300 underline font-medium flex items-center gap-1"
+                class="text-xs text-[#F4B728] hover:underline font-mono flex items-center gap-1"
               >
                 <span>View Receipt</span>
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,13 +87,13 @@
           </div>
 
           <!-- Privacy Architecture Explainer Card -->
-          <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs space-y-2.5">
-            <div class="font-bold text-slate-300 flex items-center justify-between">
-              <span class="text-blue-400 font-mono">Zcash 512-Byte Memo Privacy Protocol</span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">ZIP-302</span>
+          <div id="privacy-protocol" class="p-4 rounded-xl bg-[#161116] border border-[#2d242f] text-xs space-y-2.5">
+            <div class="font-bold text-stone-200 flex items-center justify-between font-mono">
+              <span class="text-[#F4B728]">ZIP-302 Encrypted Memo Security</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-[#1f1720] text-stone-400">Ironwood Pool</span>
             </div>
-            <p class="text-slate-400 leading-relaxed">
-              Every verified Nigerian banking transfer emits a SHA-256 fingerprint anchored inside a <strong class="text-slate-200">512-Byte Encrypted Zcash Memo</strong>. This mathematically prevents double-spending across merchant locations without disclosing sender/receiver banking identities to public observers.
+            <p class="text-stone-400 leading-relaxed text-[11px]">
+              Every verified Nigerian banking transfer emits a SHA-256 fingerprint anchored inside a <strong class="text-stone-200">512-Byte Encrypted Zcash Memo</strong>. This mathematically prevents double-spending across merchant locations without disclosing sender/receiver banking identities to public observers.
             </p>
           </div>
         </div>
@@ -110,25 +110,25 @@
           <!-- Empty State / Standby Screen -->
           <div
             v-else
-            class="rounded-2xl border border-slate-800 bg-slate-900/60 p-12 text-center flex flex-col items-center justify-center space-y-4"
+            class="rounded-2xl border border-[#2d242f] bg-[#191419] p-12 text-center flex flex-col items-center justify-center space-y-4 shadow-xl"
           >
-            <div class="w-20 h-20 rounded-2xl bg-slate-850 border border-slate-800 flex items-center justify-center text-blue-400 shadow-inner">
-              <svg class="w-10 h-10 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-16 h-16 rounded-full bg-[#120e12] border border-[#2d242f] flex items-center justify-center text-[#F4B728] shadow-inner">
+              <svg class="w-8 h-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             <div class="max-w-sm space-y-1">
-              <h3 class="text-base font-bold text-slate-200">Forensic Verifier Standby</h3>
-              <p class="text-xs text-slate-400">
+              <h3 class="text-base font-bold text-white font-sans">Forensic Verifier Standby</h3>
+              <p class="text-xs text-stone-400 leading-relaxed">
                 Upload a Nigerian bank receipt, input a 30-digit NIBSS session ID, or query a Zcash Shielded transaction with a viewing key to render the Blue Tick Certificate.
               </p>
             </div>
             <div class="pt-2">
               <button
-                @click="handleSelectPreset('preset-valid-gtb-opay')"
-                class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-750 text-emerald-400 border border-emerald-500/30 hover:border-emerald-400 transition-all shadow-sm"
+                @click="handleSelectPreset('demo-1-valid-gtb-150k')"
+                class="px-5 py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider bg-[#F4B728] hover:bg-[#e0a620] text-black transition-all shadow-md active:scale-95"
               >
-                Run Preset 1: Genuine GTBank Receipt Demo
+                Run Demo 1: Valid GTBank ₦150k
               </button>
             </div>
           </div>
@@ -136,7 +136,7 @@
       </div>
 
       <!-- MODULE 4: LIVE VERIFICATION AUDIT LEDGER TABLE AT BOTTOM OF PAGE -->
-      <section class="pt-6 border-t border-slate-800">
+      <section id="audit-ledger" class="pt-6 border-t border-[#2d242f]">
         <VerificationHistoryDrawer
           :items="auditHistoryItems"
           @select-history-item="handleSelectHistoryItem"

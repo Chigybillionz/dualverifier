@@ -1,93 +1,62 @@
 <template>
-  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40">
+  <header class="border-b border-[#2d242f] bg-[#120e12]/90 backdrop-blur-xl sticky top-0 z-40 transition-colors">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-      <!-- Left: Interlocking Shield Logo & Branding -->
+      <!-- Left: Zcash Official Gold Circular Emblem + DualVerifier Brand -->
       <div class="flex items-center space-x-3.5">
-        <div class="relative w-11 h-11 flex-shrink-0 group">
-          <!-- Interlocking Dual-Rail Zcash & Bank Shield SVG -->
-          <svg class="w-full h-full drop-shadow-[0_0_12px_rgba(59,130,246,0.5)] transition-transform group-hover:scale-105" viewBox="0 0 120 120" fill="none">
-            <defs>
-              <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#34d399" />
-                <stop offset="100%" stop-color="#059669" />
-              </linearGradient>
-              <linearGradient id="zcashGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#60a5fa" />
-                <stop offset="100%" stop-color="#2563eb" />
-              </linearGradient>
-              <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#fbbf24" />
-                <stop offset="100%" stop-color="#d97706" />
-              </linearGradient>
-              <filter id="halo" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3.5" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-            <!-- Outer Shield Ring: Web2 Banking Rail (Emerald) -->
-            <path d="M60 14 L88 28 V58 C88 78 76 94 60 102 C44 94 32 78 32 58 V28 Z" fill="#090d16" stroke="url(#emeraldGrad)" stroke-width="2.5" />
-            
-            <!-- Interlocking Shield Ring: Zcash Shielded Rail (Blue & Amber) -->
-            <ellipse cx="60" cy="60" rx="46" ry="24" transform="rotate(-30 60 60)" stroke="url(#zcashGrad)" stroke-width="2" opacity="0.8" filter="url(#halo)" />
-            <ellipse cx="60" cy="60" rx="46" ry="24" transform="rotate(30 60 60)" stroke="url(#amberGrad)" stroke-width="1.8" opacity="0.6" />
-
-            <!-- Central Zcash Z with Shield Check -->
-            <path d="M52 48 H68 L52 70 H68" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-            <!-- Central Halo 2 Privacy Node -->
-            <circle cx="60" cy="59" r="3" fill="#10b981" filter="url(#halo)" />
-          </svg>
-        </div>
-
-        <div>
-          <div class="flex items-center space-x-2.5">
-            <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center font-sans">
-              Dual<span class="text-blue-400">Verifier</span>
-            </h1>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-950/80 text-blue-300 border border-blue-800/80 shadow-sm">
-              Zcash & NIBSS
-            </span>
+        <a href="#" class="flex items-center space-x-3 group">
+          <!-- Official Zcash Round Gold Emblem -->
+          <div class="w-10 h-10 rounded-full bg-[#F4B728] flex items-center justify-center shadow-lg shadow-[#F4B728]/20 group-hover:scale-105 transition-transform flex-shrink-0">
+            <svg class="w-5 h-5 text-black font-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 6h14L5 18h14" />
+              <line x1="12" y1="3" x2="12" y2="6" stroke-width="2.5" />
+              <line x1="12" y1="18" x2="12" y2="21" stroke-width="2.5" />
+            </svg>
           </div>
-          <p class="text-xs text-slate-400 hidden sm:block font-medium">
-            Privacy-Preserving Dual-Rail Transaction Verifier & Forensic Explorer
-          </p>
-        </div>
+
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xl font-bold tracking-tight text-white font-sans">
+                Dual<span class="text-[#F4B728]">Verifier</span>
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#F4B728]/15 text-[#F4B728] border border-[#F4B728]/30">
+                ZCASH NU6.3
+              </span>
+            </div>
+            <p class="text-[11px] text-stone-400 hidden sm:block tracking-wide">
+              Privacy-Preserving Dual-Rail Forensic Explorer
+            </p>
+          </div>
+        </a>
       </div>
 
-      <!-- Center: Live Status Badges -->
-      <div class="hidden xl:flex items-center space-x-3">
-        <!-- NIBSS Core Status -->
-        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 text-xs font-mono text-emerald-300 shadow-sm">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="font-bold">NIBSS 30-Digit Core: ONLINE</span>
-        </div>
+      <!-- Center: Clean Minimalist Nav (matching z.cash reference screenshot) -->
+      <nav class="hidden md:flex items-center space-x-8 text-xs font-semibold tracking-widest uppercase text-stone-300 font-mono">
+        <a href="#verifier-section" class="hover:text-[#F4B728] transition-colors py-1">Explorer</a>
+        <a href="#how-it-works" class="hover:text-[#F4B728] transition-colors py-1">Ecosystem</a>
+        <a href="#privacy-protocol" class="hover:text-[#F4B728] transition-colors py-1">Network</a>
+        <a href="#audit-ledger" @click.prevent="$emit('open-ledger')" class="hover:text-[#F4B728] transition-colors py-1">Audit Ledger</a>
+      </nav>
 
-        <!-- Zcash Ironwood / NU6.3 Node Status -->
-        <div class="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-blue-500/30 text-xs font-mono text-blue-300 shadow-sm">
-          <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
-          <span class="font-bold">Zcash Ironwood / NU6.3 Node: CONNECTED</span>
-        </div>
-      </div>
-
-      <!-- Right: Mobile status indicator & Memo Ledger Drawer Button -->
+      <!-- Right: Telemetry & Ledger Button -->
       <div class="flex items-center space-x-3">
-        <!-- Compact status on medium screens -->
-        <div class="flex xl:hidden items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>NIBSS / NU6.3</span>
+        <!-- Live Node Status Indicator -->
+        <div class="hidden xl:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#191419] border border-[#2d242f] text-[11px] font-mono text-stone-300">
+          <span class="w-2 h-2 rounded-full bg-[#F4B728] animate-pulse"></span>
+          <span>ORCHARD SHIELDED • LIVE</span>
         </div>
 
-        <!-- Shielded Memo Ledger Button -->
+        <!-- Audit Ledger Drawer Button -->
         <button
           @click="$emit('open-ledger')"
-          class="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-200 hover:text-white border border-slate-800 hover:border-blue-500/50 transition-all text-xs font-medium shadow-sm group"
+          class="inline-flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-[#191419] hover:bg-[#211b22] text-stone-200 hover:text-white border border-[#2d242f] hover:border-[#F4B728]/50 transition-all text-xs font-mono font-semibold shadow-sm group"
         >
-          <svg class="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          <svg class="w-4 h-4 text-[#F4B728] group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
-          <span>Audit Ledger</span>
+          <span class="uppercase tracking-wider">Claims Ledger</span>
           <span
             v-if="memoCount > 0"
-            class="px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-mono border border-blue-500/30"
+            class="px-1.5 py-0.5 rounded bg-[#F4B728]/20 text-[#F4B728] text-[10px] font-mono border border-[#F4B728]/30 font-bold"
           >
             {{ memoCount }}
           </span>

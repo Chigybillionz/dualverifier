@@ -1,47 +1,47 @@
 <template>
   <div class="space-y-6">
-    <!-- Sub-tab mode selector: File Upload vs Direct Session ID -->
-    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
-      <div class="flex items-center space-x-2">
+    <!-- Sub-tab mode selector: File Upload vs Direct Session ID (z.cash Segmented Style) -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#2d242f] pb-4 gap-3">
+      <div class="inline-flex border border-[#2d242f] bg-[#120e12] overflow-hidden rounded-none shadow-sm">
         <button
           @click="inputMode = 'upload'"
           :class="[
-            'px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center space-x-2',
+            'px-4 py-2.5 text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center space-x-2 border-r border-[#2d242f]',
             inputMode === 'upload'
-              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              ? 'bg-[#F4B728]/10 text-[#F4B728] border-b-2 border-b-[#F4B728]'
+              : 'text-stone-400 hover:text-white hover:bg-white/5 border-b-2 border-b-transparent'
           ]"
         >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span>Upload Receipt (AI Vision OCR)</span>
+          <span>Upload Receipt (AI OCR)</span>
         </button>
 
         <button
           @click="inputMode = 'session'"
           :class="[
-            'px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center space-x-2',
+            'px-4 py-2.5 text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center space-x-2',
             inputMode === 'session'
-              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              ? 'bg-[#F4B728]/10 text-[#F4B728] border-b-2 border-b-[#F4B728]'
+              : 'text-stone-400 hover:text-white hover:bg-white/5 border-b-2 border-b-transparent'
           ]"
         >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
           </svg>
-          <span>Direct NIBSS Session ID</span>
+          <span>Direct 30-Digit ID</span>
         </button>
       </div>
 
       <!-- Gemini API Key configuration button -->
       <button
         @click="isKeyModalOpen = true"
-        class="flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-all"
-        :class="hasCustomApiKey ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400' : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'"
+        class="inline-flex items-center space-x-1.5 text-xs px-3 py-2 rounded-lg border transition-all font-mono"
+        :class="hasCustomApiKey ? 'bg-[#F4B728]/15 border-[#F4B728]/40 text-[#F4B728]' : 'bg-[#191419] border-[#2d242f] text-stone-400 hover:text-stone-200'"
       >
-        <span class="w-2 h-2 rounded-full" :class="hasCustomApiKey ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'"></span>
-        <span class="font-mono">{{ hasCustomApiKey ? 'Gemini 1.5 Active' : '⚙️ AI Vision Key' }}</span>
+        <span class="w-2 h-2 rounded-full" :class="hasCustomApiKey ? 'bg-[#F4B728] animate-pulse' : 'bg-stone-500'"></span>
+        <span>{{ hasCustomApiKey ? 'Gemini 1.5 Active' : '⚙️ Vision Key' }}</span>
       </button>
     </div>
 
