@@ -90,6 +90,114 @@
         </div>
       </div>
 
+      <!-- ── AI Receipt Classification Banner ── -->
+      <!-- Classifying spinner -->
+      <div v-if="isClassifying" class="flex items-center space-x-3 p-4 rounded-2xl bg-[#1a141a] border border-[#F4B728]/30 text-sm">
+        <svg class="animate-spin h-5 w-5 text-[#F4B728] shrink-0" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-[#F4B728] font-mono text-xs font-semibold tracking-wide">AI Classification Engine scanning document type...</span>
+      </div>
+
+      <!-- NOT_A_RECEIPT — HIGH confidence → Hard reject banner -->
+      <div
+        v-if="!isClassifying && classification?.documentType === 'NOT_A_RECEIPT' && classification?.confidence === 'HIGH'"
+        class="p-4 rounded-2xl border border-rose-700/60 bg-rose-950/30 space-y-2"
+      >
+        <div class="flex items-center space-x-2">
+          <svg class="w-5 h-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.98l-6.93-12a2 2 0 00-3.5 0l-6.93 12A2 2 0 005.07 19z"/>
+          </svg>
+          <span class="text-sm font-bold text-rose-300">⚠ Document Not Recognized as a Payment Receipt</span>
+        </div>
+        <p class="text-xs text-rose-200/80 leading-relaxed pl-7">
+          {{ classification.reason }}
+        </p>
+        <p class="text-[11px] text-rose-300/60 pl-7 font-mono">
+          Classified by: {{ classification.classifiedBy === 'GEMINI_VISION' ? '🤖 Gemini 1.5 Flash Vision' : '🔍 On-Device Keyword Heuristic' }}
+          · Confidence: {{ classification.confidence }}
+        </p>
+        <div class="pl-7 pt-1">
+          <p class="text-[11px] text-rose-200/50">
+            Please upload a Nigerian bank transfer screenshot (OPay, Moniepoint, GTBank, Access Bank, Zenith, etc.) or a Zcash blockchain receipt.
+          </p>
+          <button
+            @click="clearFile"
+            class="mt-2 px-3 py-1.5 rounded-lg bg-rose-900/50 hover:bg-rose-800/60 text-rose-300 text-xs border border-rose-700/40 transition-all"
+          >
+            🗑 Remove & Upload Different File
+          </button>
+        </div>
+      </div>
+
+      <!-- BLOCKCHAIN_TRANSACTION banner -->
+      <div
+        v-if="!isClassifying && classification?.documentType === 'BLOCKCHAIN_TRANSACTION'"
+        class="p-4 rounded-2xl border border-[#F4B728]/40 bg-[#F4B728]/5 space-y-1.5"
+      >
+        <div class="flex items-center space-x-2">
+          <span class="text-lg">⛓</span>
+          <span class="text-sm font-bold text-[#F4B728]">Blockchain Transaction Detected</span>
+          <span class="ml-auto text-[10px] font-mono text-[#F4B728]/60 border border-[#F4B728]/30 px-2 py-0.5 rounded">{{ classification.confidence }}</span>
+        </div>
+        <p class="text-xs text-stone-300 leading-relaxed pl-7">
+          {{ classification.reason }} Use the <span class="text-[#F4B728] font-semibold">Zcash Tab</span> to verify blockchain transactions with a Transaction ID (txid).
+        </p>
+      </div>
+
+      <!-- PAYMENT_RECEIPT — HIGH confidence → Green success badge -->
+      <div
+        v-if="!isClassifying && classification?.documentType === 'PAYMENT_RECEIPT' && classification?.confidence === 'HIGH'"
+        class="flex items-center space-x-3 p-3.5 rounded-2xl border border-emerald-600/40 bg-emerald-950/30"
+      >
+        <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-emerald-300">✓ Payment Receipt Identified — Extracting fields...</p>
+          <p class="text-[11px] text-emerald-400/60 font-mono truncate">
+            {{ classification.detectedKeywords.slice(0, 5).join(' · ') }}
+          </p>
+        </div>
+        <span class="text-[10px] font-mono text-emerald-500/60 border border-emerald-700/40 px-2 py-0.5 rounded shrink-0">
+          {{ classification.classifiedBy === 'GEMINI_VISION' ? 'Gemini Vision' : 'Heuristic' }}
+        </span>
+      </div>
+
+      <!-- PAYMENT_RECEIPT — MEDIUM confidence OR UNKNOWN → Amber caution -->
+      <div
+        v-if="!isClassifying && classification && (
+          (classification.documentType === 'PAYMENT_RECEIPT' && classification.confidence === 'MEDIUM') ||
+          classification.documentType === 'UNKNOWN'
+        )"
+        class="p-3.5 rounded-2xl border border-amber-600/40 bg-amber-950/20 space-y-1"
+      >
+        <div class="flex items-center space-x-2">
+          <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.98l-6.93-12a2 2 0 00-3.5 0l-6.93 12A2 2 0 005.07 19z"/>
+          </svg>
+          <span class="text-xs font-bold text-amber-300">⚠ Low-Confidence Classification — Please Verify</span>
+        </div>
+        <p class="text-[11px] text-amber-200/70 leading-relaxed pl-6">
+          {{ classification.reason }} Fields have been auto-extracted below — please review and correct before submitting.
+        </p>
+      </div>
+
+      <!-- NOT_A_RECEIPT — MEDIUM confidence → Soft warning (still allow OCR to run) -->
+      <div
+        v-if="!isClassifying && classification?.documentType === 'NOT_A_RECEIPT' && classification?.confidence === 'MEDIUM'"
+        class="p-3.5 rounded-2xl border border-orange-600/30 bg-orange-950/15 space-y-1"
+      >
+        <div class="flex items-center space-x-2">
+          <span class="text-sm">🧾</span>
+          <span class="text-xs font-bold text-orange-300">Document Type Unclear</span>
+        </div>
+        <p class="text-[11px] text-orange-200/60 pl-6 leading-relaxed">
+          {{ classification.reason }} Scan results are shown below — if this is not a bank transfer receipt, please upload the correct file.
+        </p>
+      </div>
+
       <!-- OCR Scanning Progress State -->
       <div v-if="isScanning" class="p-6 rounded-2xl bg-slate-900/90 border border-emerald-500/30 text-center space-y-3">
         <div class="flex items-center justify-center space-x-3">
@@ -502,6 +610,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue';
 import { performReceiptOcr } from '../utils/receiptOcr';
+import { classifyReceiptDocument, type ReceiptClassification } from '../utils/receiptClassifier';
 
 const props = defineProps<{
   isLoading: boolean;
@@ -558,6 +667,10 @@ const showFullImage = ref(false);
 const isScanning = ref(false);
 const scanPercent = ref(0);
 const scanStepText = ref('Initializing OCR...');
+
+// Classification state — set before OCR begins
+const isClassifying = ref(false);
+const classification = ref<ReceiptClassification | null>(null);
 
 const isKeyModalOpen = ref(false);
 const inputApiKey = ref('');
@@ -674,6 +787,28 @@ async function processUploadedFile(file: File) {
   selectedFile.value = file;
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
   previewUrl.value = URL.createObjectURL(file);
+
+  // ── Step 1: Classify the document BEFORE running full OCR ──
+  classification.value = null;
+  isClassifying.value = true;
+  try {
+    classification.value = await classifyReceiptDocument(file);
+  } catch {
+    classification.value = null;
+  } finally {
+    isClassifying.value = false;
+  }
+
+  // ── Step 2: If clearly not a receipt, skip OCR (save time & show banner) ──
+  if (
+    classification.value?.documentType === 'NOT_A_RECEIPT' &&
+    classification.value?.confidence === 'HIGH'
+  ) {
+    // Don't run Tesseract on junk documents — banner already tells the user
+    return;
+  }
+
+  // ── Step 3: Proceed with OCR scan for payment receipts or unknown docs ──
   await scanReceipt(file);
 }
 
@@ -717,6 +852,7 @@ async function reScanReceipt() {
 
 function clearFile() {
   selectedFile.value = null;
+  classification.value = null;
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value);
     previewUrl.value = '';

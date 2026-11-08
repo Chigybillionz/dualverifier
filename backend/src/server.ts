@@ -190,6 +190,68 @@ app.post('/api/verify/zcash', async (req, res) => {
   }
 });
 
+// 3. AI Receipt Document Classifier (runs BEFORE full OCR/verification)
+// Determines if a file is a payment receipt, blockchain tx, or unrelated document.
+app.post('/api/classify/receipt', upload.single('receipt'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ success: false, error: 'No receipt file uploaded' });
+      return;
+    }
+
+    const customApiKey = (req.headers['x-gemini-key'] as string) || req.body.geminiApiKey || process.env.GEMINI_API_KEY;
+    if (!customApiKey || customApiKey === 'YOUR_GEMINI_API_KEY') {
+      res.status(503).json({ success: false, error: 'Gemini API key not configured. Use client-side heuristic classifier.' });
+      return;
+    }
+
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(customApiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const base64Data = file.buffer.toString('base64');
+    const mimeType = file.mimetype as 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf';
+
+    const classificationPrompt = `You are an AI document classifier for a Nigerian bank receipt verification system called DualVerifier.
+
+Examine this uploaded document image carefully and determine what type of document it is.
+
+You must respond with ONLY a valid JSON object (no markdown, no explanation, just JSON):
+
+{
+  "documentType": "PAYMENT_RECEIPT" | "BLOCKCHAIN_TRANSACTION" | "NOT_A_RECEIPT",
+  "confidence": "HIGH" | "MEDIUM" | "LOW",
+  "reason": "<one sentence explaining why>",
+  "isPaymentReceipt": true | false,
+  "detectedKeywords": ["<list of key words/phrases you spotted>"],
+  "score": <integer 0-10 representing how confident you are>
+}
+
+Classification rules:
+- PAYMENT_RECEIPT: Nigerian bank transfer receipts showing Session ID / NIP reference number, sender bank, receiver bank, amount in NGN (₦), transaction timestamp. This includes mobile banking apps (OPay, Moniepoint, PalmPay, Kuda, GTBank, Zenith, Access Bank, First Bank, UBA etc.)
+- BLOCKCHAIN_TRANSACTION: Zcash, Bitcoin, Ethereum, or other crypto transaction receipts showing TXID / transaction hash, wallet addresses, block height, confirmations.
+- NOT_A_RECEIPT: Anything else — invoices, purchase orders, delivery notes, WhatsApp/chat screenshots, ID cards, passports, certificates, blank images, selfies, unrelated photos, salary slips, airtime/data receipts, etc.
+
+Be strict. If in doubt and the document does not clearly show a completed Nigerian bank transfer or crypto transaction, classify as NOT_A_RECEIPT.`;
+
+    const result = await model.generateContent([
+      { inlineData: { data: base64Data, mimeType } },
+      classificationPrompt
+    ]);
+
+    const responseText = result.response.text().trim();
+    // Strip markdown code fences if Gemini wraps in ```json ... ```
+    const jsonText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    const classification = JSON.parse(jsonText);
+
+    res.json({ success: true, classification });
+  } catch (err: any) {
+    console.error('[API /classify/receipt] Error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Classification failed' });
+  }
+});
+
 // Session Audit Ledger / Verified Attestations
 app.get('/api/history', (_req, res) => {
   const records = zcashMemoRegistry.getAllRecords();
