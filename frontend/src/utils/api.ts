@@ -15,3 +15,4 @@ export function apiUrl(endpoint: string): string {
   }
   return `${API_BASE}${cleanEndpoint}`;
 }
+

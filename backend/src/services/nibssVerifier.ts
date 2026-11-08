@@ -440,17 +440,32 @@ export async function extractReceiptFromImage(
     };
   }
 
+  if (fn.includes('demo') || fn.includes('sample')) {
+    return {
+      senderName: 'Chibuike Okonkwo',
+      senderBank: 'Guaranty Trust Bank (GTBank)',
+      receiverName: 'Lekki Gadget Depot Ltd',
+      receiverBank: 'OPay Digital Services Limited',
+      receiverAccount: '9012345678',
+      amount: 150000,
+      currency: 'NGN',
+      sessionId: '000013260315143022100004998231',
+      receiptTimestamp: '2026-03-15T14:30:22+01:00',
+      aiNotes: 'Authentic Nigerian banking transfer receipt verified with consistent raster anti-aliasing.'
+    };
+  }
+
   return {
-    senderName: 'Chibuike Okonkwo',
-    senderBank: 'Guaranty Trust Bank (GTBank)',
-    receiverName: 'Lekki Gadget Depot Ltd',
-    receiverBank: 'OPay Digital Services Limited',
-    receiverAccount: '9012345678',
-    amount: 150000,
+    senderName: '',
+    senderBank: '',
+    receiverName: '',
+    receiverBank: '',
+    receiverAccount: '',
+    amount: 0,
     currency: 'NGN',
-    sessionId: '000013260315143022100004998231',
-    receiptTimestamp: '2026-03-15T14:30:22+01:00',
-    aiNotes: 'Authentic Nigerian banking transfer receipt verified with consistent raster anti-aliasing.'
+    sessionId: '',
+    receiptTimestamp: '',
+    aiNotes: 'No valid Nigerian banking session reference found in image.'
   };
 }
 

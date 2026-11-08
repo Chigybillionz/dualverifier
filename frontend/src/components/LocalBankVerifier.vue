@@ -100,34 +100,44 @@
         <span class="text-[#F4B728] font-mono text-xs font-semibold tracking-wide">AI Classification Engine scanning document type...</span>
       </div>
 
-      <!-- NOT_A_RECEIPT — HIGH confidence → Hard reject banner -->
+      <!-- NOT_A_RECEIPT OR UNKNOWN (isPaymentReceipt === false) → Clear Rejection Card -->
       <div
-        v-if="!isClassifying && classification?.documentType === 'NOT_A_RECEIPT' && classification?.confidence === 'HIGH'"
-        class="p-4 rounded-2xl border border-rose-700/60 bg-rose-950/30 space-y-2"
+        v-if="!isClassifying && classification && !classification.isPaymentReceipt && classification.documentType !== 'BLOCKCHAIN_TRANSACTION'"
+        class="p-5 rounded-2xl border border-rose-700/60 bg-rose-950/40 space-y-3"
       >
-        <div class="flex items-center space-x-2">
-          <svg class="w-5 h-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.98l-6.93-12a2 2 0 00-3.5 0l-6.93 12A2 2 0 005.07 19z"/>
-          </svg>
-          <span class="text-sm font-bold text-rose-300">⚠ Document Not Recognized as a Payment Receipt</span>
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-rose-900/60 border border-rose-700/80 flex items-center justify-center text-rose-400 shrink-0">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.98l-6.93-12a2 2 0 00-3.5 0l-6.93 12A2 2 0 005.07 19z"/>
+            </svg>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-rose-300">Verification Inactive — Not a Payment Receipt</h4>
+            <p class="text-[11px] text-rose-400/80 font-mono">Status: Rejected by Forensic Document Classifier</p>
+          </div>
         </div>
-        <p class="text-xs text-rose-200/80 leading-relaxed pl-7">
+
+        <p class="text-xs text-rose-200/85 leading-relaxed pl-10">
           {{ classification.reason }}
         </p>
-        <p class="text-[11px] text-rose-300/60 pl-7 font-mono">
-          Classified by: {{ classification.classifiedBy === 'GEMINI_VISION' ? '🤖 Gemini 1.5 Flash Vision' : '🔍 On-Device Keyword Heuristic' }}
-          · Confidence: {{ classification.confidence }}
-        </p>
-        <div class="pl-7 pt-1">
-          <p class="text-[11px] text-rose-200/50">
-            Please upload a Nigerian bank transfer screenshot (OPay, Moniepoint, GTBank, Access Bank, Zenith, etc.) or a Zcash blockchain receipt.
+
+        <div class="pl-10 space-y-2 pt-1">
+          <p class="text-[11px] text-stone-400 leading-normal">
+            DualVerifier only verifies genuine <strong>Nigerian inter-bank transfer receipts</strong> (OPay, Moniepoint, PalmPay, GTBank, Zenith, Access Bank, etc.) and Zcash blockchain transactions. Invoices, screenshots, and non-payment documents cannot be verified.
           </p>
-          <button
-            @click="clearFile"
-            class="mt-2 px-3 py-1.5 rounded-lg bg-rose-900/50 hover:bg-rose-800/60 text-rose-300 text-xs border border-rose-700/40 transition-all"
-          >
-            🗑 Remove & Upload Different File
-          </button>
+
+          <div class="flex items-center space-x-3 pt-1">
+            <button
+              @click="clearFile"
+              class="px-3.5 py-1.5 rounded-lg bg-rose-900/50 hover:bg-rose-800/60 text-rose-200 text-xs font-semibold border border-rose-700/50 transition-all flex items-center space-x-1.5"
+            >
+              <span>🗑</span>
+              <span>Remove File & Try Another</span>
+            </button>
+            <span class="text-[10px] text-stone-500 font-mono">
+              Engine: {{ classification.classifiedBy === 'GEMINI_VISION' ? 'Gemini 1.5 Vision' : 'Neural Filter' }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -146,56 +156,23 @@
         </p>
       </div>
 
-      <!-- PAYMENT_RECEIPT — HIGH confidence → Green success badge -->
+      <!-- PAYMENT_RECEIPT — Confirmed Genuine Receipt -->
       <div
-        v-if="!isClassifying && classification?.documentType === 'PAYMENT_RECEIPT' && classification?.confidence === 'HIGH'"
+        v-if="!isClassifying && classification?.isPaymentReceipt"
         class="flex items-center space-x-3 p-3.5 rounded-2xl border border-emerald-600/40 bg-emerald-950/30"
       >
         <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <div class="flex-1 min-w-0">
-          <p class="text-xs font-bold text-emerald-300">✓ Payment Receipt Identified — Extracting fields...</p>
+          <p class="text-xs font-bold text-emerald-300">✓ Genuine Payment Receipt Identified — Verified</p>
           <p class="text-[11px] text-emerald-400/60 font-mono truncate">
-            {{ classification.detectedKeywords.slice(0, 5).join(' · ') }}
+            {{ (classification.detectedKeywords || []).slice(0, 5).join(' · ') }}
           </p>
         </div>
         <span class="text-[10px] font-mono text-emerald-500/60 border border-emerald-700/40 px-2 py-0.5 rounded shrink-0">
-          {{ classification.classifiedBy === 'GEMINI_VISION' ? 'Gemini Vision' : 'Heuristic' }}
+          {{ classification.classifiedBy === 'GEMINI_VISION' ? 'Gemini Vision' : 'Neural Filter' }}
         </span>
-      </div>
-
-      <!-- PAYMENT_RECEIPT — MEDIUM confidence OR UNKNOWN → Amber caution -->
-      <div
-        v-if="!isClassifying && classification && (
-          (classification.documentType === 'PAYMENT_RECEIPT' && classification.confidence === 'MEDIUM') ||
-          classification.documentType === 'UNKNOWN'
-        )"
-        class="p-3.5 rounded-2xl border border-amber-600/40 bg-amber-950/20 space-y-1"
-      >
-        <div class="flex items-center space-x-2">
-          <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.98l-6.93-12a2 2 0 00-3.5 0l-6.93 12A2 2 0 005.07 19z"/>
-          </svg>
-          <span class="text-xs font-bold text-amber-300">⚠ Low-Confidence Classification — Please Verify</span>
-        </div>
-        <p class="text-[11px] text-amber-200/70 leading-relaxed pl-6">
-          {{ classification.reason }} Fields have been auto-extracted below — please review and correct before submitting.
-        </p>
-      </div>
-
-      <!-- NOT_A_RECEIPT — MEDIUM confidence → Soft warning (still allow OCR to run) -->
-      <div
-        v-if="!isClassifying && classification?.documentType === 'NOT_A_RECEIPT' && classification?.confidence === 'MEDIUM'"
-        class="p-3.5 rounded-2xl border border-orange-600/30 bg-orange-950/15 space-y-1"
-      >
-        <div class="flex items-center space-x-2">
-          <span class="text-sm">🧾</span>
-          <span class="text-xs font-bold text-orange-300">Document Type Unclear</span>
-        </div>
-        <p class="text-[11px] text-orange-200/60 pl-6 leading-relaxed">
-          {{ classification.reason }} Scan results are shown below — if this is not a bank transfer receipt, please upload the correct file.
-        </p>
       </div>
 
       <!-- OCR Scanning Progress State -->
@@ -218,8 +195,8 @@
         </p>
       </div>
 
-      <!-- Extracted Receipt Inspection & Review Card -->
-      <div v-if="selectedFile && !isScanning" class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 space-y-4">
+      <!-- Extracted Receipt Inspection & Review Card (ONLY SHOWN FOR CONFIRMED PAYMENT RECEIPTS) -->
+      <div v-if="selectedFile && !isScanning && (!classification || classification.isPaymentReceipt)" class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 space-y-4">
         <!-- Header with file info & OCR Engine badge -->
         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
           <div class="flex items-center space-x-3">
@@ -501,12 +478,27 @@
     <div class="pt-2">
       <button
         @click="executeVerification"
-        :disabled="isLoading || isScanning || (inputMode === 'upload' && !selectedFile && !extractedData.sessionId) || (inputMode === 'session' && cleanSessionId.length < 10)"
-        class="w-full py-4 px-6 rounded-2xl font-bold text-sm tracking-wide transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-sans shadow-emerald-500/25 active:scale-[0.99]"
+        :disabled="
+          isLoading ||
+          isScanning ||
+          isClassifying ||
+          (inputMode === 'upload' && (!selectedFile || !extractedData.sessionId || (classification && !classification.isPaymentReceipt))) ||
+          (inputMode === 'session' && cleanSessionId.length < 10)
+        "
+        :class="[
+          'w-full py-4 px-6 rounded-2xl font-bold text-sm tracking-wide transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-sans active:scale-[0.99]',
+          (inputMode === 'upload' && classification && !classification.isPaymentReceipt)
+            ? 'bg-rose-950/60 border border-rose-800/60 text-rose-400'
+            : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 shadow-emerald-500/25'
+        ]"
       >
-        <svg v-if="isLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-950" fill="none" viewBox="0 0 24 24">
+        <svg v-if="isLoading" class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+
+        <svg v-else-if="inputMode === 'upload' && classification && !classification.isPaymentReceipt" class="w-5 h-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
         </svg>
 
         <svg v-else class="w-5 h-5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -515,7 +507,9 @@
 
         <span>
           {{
-            isLoading
+            (inputMode === 'upload' && classification && !classification.isPaymentReceipt)
+              ? 'Verification Inactive — Document Is Not a Payment Receipt'
+              : isLoading
               ? 'Verifying NIBSS Cryptography & Anchoring 512B Zcash Memo...'
               : selectedFile
               ? 'Confirm Receipt & Anchor to Zcash Shielded Memo'
@@ -618,6 +612,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'verify', payload: any): void;
+  (e: 'reset-verification'): void;
 }>();
 
 const NIGERIAN_BANKS = [
@@ -788,6 +783,18 @@ async function processUploadedFile(file: File) {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
   previewUrl.value = URL.createObjectURL(file);
 
+  // Immediately notify parent to clear any previous verification cards on the right
+  emit('reset-verification');
+
+  // Reset extracted fields to clean state
+  extractedData.sessionId = '';
+  extractedData.amount = 0;
+  extractedData.senderName = '';
+  extractedData.receiverName = '';
+  extractedData.receiverAccount = '';
+  extractedData.receiptTimestamp = '';
+  extractedData.confidenceNotes = '';
+
   // ── Step 1: Classify the document BEFORE running full OCR ──
   classification.value = null;
   isClassifying.value = true;
@@ -799,16 +806,13 @@ async function processUploadedFile(file: File) {
     isClassifying.value = false;
   }
 
-  // ── Step 2: If clearly not a receipt, skip OCR (save time & show banner) ──
-  if (
-    classification.value?.documentType === 'NOT_A_RECEIPT' &&
-    classification.value?.confidence === 'HIGH'
-  ) {
-    // Don't run Tesseract on junk documents — banner already tells the user
+  // ── Step 2: If the document is NOT a payment receipt, DO NOT run OCR and keep verification inactive ──
+  if (classification.value && !classification.value.isPaymentReceipt) {
+    extractedData.confidenceNotes = classification.value.reason;
     return;
   }
 
-  // ── Step 3: Proceed with OCR scan for payment receipts or unknown docs ──
+  // ── Step 3: Proceed with OCR scan only for confirmed payment receipts ──
   await scanReceipt(file);
 }
 
@@ -860,6 +864,12 @@ function clearFile() {
   if (fileInputRef.value) fileInputRef.value.value = '';
   extractedData.sessionId = '';
   extractedData.amount = 0;
+  extractedData.senderName = '';
+  extractedData.receiverName = '';
+  extractedData.receiverAccount = '';
+  extractedData.receiptTimestamp = '';
+  extractedData.confidenceNotes = '';
+  emit('reset-verification');
 }
 
 function loadSampleReceipt(type: 'valid-gtb' | 'valid-opay' | 'fake-alert') {

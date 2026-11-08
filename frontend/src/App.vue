@@ -75,6 +75,7 @@
               ref="localVerifierRef"
               :isLoading="isLoading"
               @verify="handleVerifyLocal"
+              @reset-verification="activeBlueCard = null"
             />
 
             <!-- Rail 2 Component -->
