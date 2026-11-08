@@ -259,6 +259,8 @@ import BlueVerificationCard from './components/BlueVerificationCard.vue';
 import ProofCertificateModal from './components/ProofCertificateModal.vue';
 import VerificationHistoryDrawer, { HistoryAuditItem } from './components/VerificationHistoryDrawer.vue';
 import ReceiptVisualModal from './components/ReceiptVisualModal.vue';
+import { apiUrl } from './utils/api';
+import { MOCK_DEMO_PRESETS } from './data/mockDemoPresets';
 
 const activeRail = ref<'LOCAL_BANK' | 'ZCASH'>('LOCAL_BANK');
 const isLoading = ref(false);
@@ -274,7 +276,7 @@ const currentPresetVisual = ref<any>(null);
 const localVerifierRef = ref<any>(null);
 const zcashVerifierRef = ref<any>(null);
 
-let demoPresets: any[] = [];
+let demoPresets: any[] = [...MOCK_DEMO_PRESETS];
 
 // Pre-populated realistic session entries for the live audit ledger
 const auditHistoryItems = ref<HistoryAuditItem[]>([
@@ -423,7 +425,7 @@ function mirrorHashToLocalStorage(proofHash: string, metadata: any) {
 
 async function fetchShieldedMemos() {
   try {
-    const res = await fetch('/api/zcash/memos');
+    const res = await fetch(apiUrl('/api/zcash/memos'));
     const json = await res.json();
     if (json.success && json.records) {
       shieldedMemos.value = json.records;
@@ -435,7 +437,7 @@ async function fetchShieldedMemos() {
 
 async function fetchAuditHistory() {
   try {
-    const res = await fetch('/api/history');
+    const res = await fetch(apiUrl('/api/history'));
     const json = await res.json();
     if (json.success && json.history && json.history.length > 0) {
       for (const item of json.history) {
@@ -463,13 +465,13 @@ async function fetchAuditHistory() {
 
 async function fetchPresets() {
   try {
-    const res = await fetch('/api/presets');
+    const res = await fetch(apiUrl('/api/presets'));
     const json = await res.json();
-    if (json.success && json.presets) {
+    if (json.success && json.presets && json.presets.length > 0) {
       demoPresets = json.presets;
     }
   } catch (err) {
-    console.warn('Failed to load presets:', err);
+    console.warn('Failed to load presets, using pre-bundled hackathon test vectors:', err);
   }
 }
 
@@ -519,12 +521,12 @@ async function handleVerifyLocal(payload: any) {
   try {
     let res: Response;
     if (payload.mode === 'file') {
-      res = await fetch('/api/verify/local', {
+      res = await fetch(apiUrl('/api/verify/local'), {
         method: 'POST',
         body: payload.formData
       });
     } else {
-      res = await fetch('/api/verify/local', {
+      res = await fetch(apiUrl('/api/verify/local'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload.data)
@@ -550,7 +552,7 @@ async function handleVerifyLocal(payload: any) {
 async function handleVerifyZcash(payload: any) {
   isLoading.value = true;
   try {
-    const res = await fetch('/api/verify/zcash', {
+    const res = await fetch(apiUrl('/api/verify/zcash'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -669,7 +671,7 @@ function handleSelectHistoryItem(item: HistoryAuditItem) {
 
 async function handleResetRecord(proofHash: string) {
   try {
-    await fetch(`/api/zcash/reset/${proofHash}`, { method: 'POST' });
+    await fetch(apiUrl(`/api/zcash/reset/${proofHash}`), { method: 'POST' });
     await fetchShieldedMemos();
     if (activeBlueCard.value?.proofHash === proofHash) {
       activeBlueCard.value = null;

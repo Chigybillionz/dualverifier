@@ -1,4 +1,5 @@
 import { createWorker } from 'tesseract.js';
+import { apiUrl } from './api';
 
 export interface ExtractedReceiptData {
   sessionId: string;
@@ -181,7 +182,7 @@ export async function performReceiptOcr(
     const headers: Record<string, string> = {};
     if (customKey) headers['x-gemini-key'] = customKey;
 
-    const res = await fetch('/api/ocr/extract', {
+    const res = await fetch(apiUrl('/api/ocr/extract'), {
       method: 'POST',
       headers,
       body: formData

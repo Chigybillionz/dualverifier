@@ -9,6 +9,7 @@
  */
 
 import { createWorker } from 'tesseract.js';
+import { apiUrl } from './api';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -330,7 +331,7 @@ async function classifyWithGemini(
     const formData = new FormData();
     formData.append('receipt', file);
 
-    const res = await fetch('/api/classify/receipt', {
+    const res = await fetch(apiUrl('/api/classify/receipt'), {
       method: 'POST',
       headers: { 'x-gemini-key': geminiApiKey },
       body: formData,
@@ -392,3 +393,4 @@ export async function classifyReceiptDocument(
   // Tier 1: On-device keyword heuristic
   return classifyWithHeuristics(file);
 }
+
