@@ -29,14 +29,6 @@
         </a>
       </div>
 
-      <!-- Center: Clean Minimalist Nav (matching z.cash reference screenshot) -->
-      <nav class="hidden md:flex items-center space-x-8 text-xs font-semibold tracking-widest uppercase text-stone-300 font-mono">
-        <a href="#verifier-section" class="hover:text-[#F4B728] transition-colors py-1">Explorer</a>
-        <a href="#how-it-works" class="hover:text-[#F4B728] transition-colors py-1">Ecosystem</a>
-        <a href="#privacy-protocol" class="hover:text-[#F4B728] transition-colors py-1">Network</a>
-        <a href="#audit-ledger" @click.prevent="$emit('open-ledger')" class="hover:text-[#F4B728] transition-colors py-1">Audit Ledger</a>
-      </nav>
-
       <!-- Right: Telemetry & Ledger Button -->
       <div class="flex items-center space-x-3">
         <!-- Live Node Status Indicator -->
