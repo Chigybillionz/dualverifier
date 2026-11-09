@@ -4,7 +4,7 @@
       <!-- Left: Brand Logo & Title -->
       <div class="flex items-center space-x-3.5">
         <div class="relative w-11 h-11 flex-shrink-0">
-          <img src="/logo.svg" alt="DualVerifier Logo" class="w-full h-full drop-shadow-[0_0_12px_rgba(0,240,255,0.45)]" />
+          <img src="/logo.png" alt="DualVerifier Logo" class="w-full h-full object-cover rounded-full drop-shadow-[0_0_12px_rgba(244,183,40,0.45)]" />
         </div>
         <div>
           <div class="flex items-center space-x-2.5">
