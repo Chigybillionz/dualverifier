@@ -57,7 +57,6 @@ const PAYMENT_KEYWORDS_HIGH: string[] = [
   'payment successful',
   'debit successful',
   'money sent',
-  'successful',
   'transaction reference',
   'transaction id',
   'transaction ref',
@@ -126,14 +125,35 @@ const PAYMENT_KEYWORDS_MEDIUM: string[] = [
 
 /** Phrases that signal the document is strictly NOT a payment receipt */
 const NOT_RECEIPT_SIGNALS: string[] = [
+  'certify',
+  'certificate',
+  'certification',
+  'this is to certify',
+  'siwes',
+  'industrial training',
+  'internship',
+  'matriculation',
+  'admission',
+  'student',
+  'university',
+  'polytechnic',
+  'college',
+  'school',
+  'diploma',
+  'degree',
+  'transcript',
+  'curriculum vitae',
+  'resume',
   'invoice',
   'invoice no',
   'invoice number',
+  'proforma',
   'bill to',
   'sold to',
   'purchase order',
   'quotation',
   'delivery note',
+  'waybill',
   'packing slip',
   'payslip',
   'pay stub',
@@ -142,9 +162,12 @@ const NOT_RECEIPT_SIGNALS: string[] = [
   'data bundle purchase',
   'national id',
   'voter card',
+  'voters card',
   'passport',
   'driving licence',
   'driver license',
+  'nin slip',
+  'birth certificate',
   'academic certificate',
   'degree certificate',
   'statement of account',
@@ -266,12 +289,12 @@ async function classifyWithHeuristics(file: File): Promise<ReceiptClassification
     };
   }
 
-  // 2. Strong not-a-receipt signal overrides weak payment signals
-  if (negScore >= 2 && totalPaymentScore <= 1 && !hasLongNum) {
+  // 2. HARD GUARD 1: Non-receipt indicators (Certificate, SIWES, Invoice, ID card) without a reference number
+  if (negScore > 0 && !hasLongNum) {
     return {
       documentType: 'NOT_A_RECEIPT',
       confidence: 'HIGH',
-      reason: `Document appears to be a ${negFound[0] || 'non-payment document'} (detected: ${negFound.slice(0, 3).join(', ')}). No NIBSS transfer indicators found.`,
+      reason: `Document identified as a ${negFound[0]} (detected: ${negFound.slice(0, 3).join(', ')}). No banking transaction reference found.`,
       detectedKeywords: negFound,
       isPaymentReceipt: false,
       classifiedBy: 'KEYWORD_HEURISTIC',
@@ -279,8 +302,35 @@ async function classifyWithHeuristics(file: File): Promise<ReceiptClassification
     };
   }
 
-  // 3. Genuine Nigerian bank / FinTech payment receipt:
-  // Has a transaction reference number (10-34 digits) AND at least one payment keyword
+  // 3. HARD GUARD 2: A document CANNOT be a payment receipt if it has NO reference number AND NO transfer amount
+  const hasCurrencyAmount = /(?:₦|NGN|\bN\b|\$)\s*[0-9,]+(?:\.[0-9]{2})?/i.test(rawText) || /(?:amount|total|amt)[\s:.-]+[0-9,]+(?:\.[0-9]{2})?/i.test(rawText);
+  if (!hasLongNum && !hasCurrencyAmount) {
+    return {
+      documentType: 'NOT_A_RECEIPT',
+      confidence: 'HIGH',
+      reason: 'No transaction reference number (Session ID) or transfer amount detected in this document.',
+      detectedKeywords: negFound,
+      isPaymentReceipt: false,
+      classifiedBy: 'KEYWORD_HEURISTIC',
+      score: 0,
+    };
+  }
+
+  // 4. Strong not-a-receipt signal overrides weak payment signals
+  if (negScore >= 2 && highScore === 0) {
+    return {
+      documentType: 'NOT_A_RECEIPT',
+      confidence: 'HIGH',
+      reason: `Document appears to be a ${negFound[0]} — not a valid inter-bank payment receipt.`,
+      detectedKeywords: negFound,
+      isPaymentReceipt: false,
+      classifiedBy: 'KEYWORD_HEURISTIC',
+      score: 0,
+    };
+  }
+
+  // 5. Genuine Nigerian bank / FinTech payment receipt:
+  // Must have a transaction reference number (10-34 digits) AND at least one payment keyword
   if (hasLongNum && (highScore >= 1 || mediumScore >= 1) && negScore === 0) {
     return {
       documentType: 'PAYMENT_RECEIPT',
@@ -293,8 +343,8 @@ async function classifyWithHeuristics(file: File): Promise<ReceiptClassification
     };
   }
 
-  // 4. High-signal keywords even if long number was partially segmented
-  if (highScore >= 2 && negScore <= 1) {
+  // 6. High-signal keywords with confirmed transfer amount
+  if (highScore >= 2 && hasCurrencyAmount && negScore <= 1) {
     return {
       documentType: 'PAYMENT_RECEIPT',
       confidence: 'HIGH',
@@ -306,8 +356,8 @@ async function classifyWithHeuristics(file: File): Promise<ReceiptClassification
     };
   }
 
-  // 5. Medium confidence payment indicators
-  if ((highScore >= 1 && hasAcct) || (totalPaymentScore >= 2 && negScore === 0)) {
+  // 7. Medium confidence payment indicators
+  if ((highScore >= 1 && hasAcct) || (totalPaymentScore >= 3 && hasCurrencyAmount && negScore === 0)) {
     return {
       documentType: 'PAYMENT_RECEIPT',
       confidence: 'MEDIUM',
@@ -319,7 +369,7 @@ async function classifyWithHeuristics(file: File): Promise<ReceiptClassification
     };
   }
 
-  // 6. Default: not a receipt
+  // 8. Default: not a receipt
   return {
     documentType: 'NOT_A_RECEIPT',
     confidence: negScore >= 1 ? 'HIGH' : 'MEDIUM',
