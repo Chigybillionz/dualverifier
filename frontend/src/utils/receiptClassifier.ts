@@ -42,6 +42,13 @@ export interface ReceiptClassification {
 /** High-signal phrases that only appear on real Nigerian bank transfer receipts */
 const PAYMENT_KEYWORDS_HIGH: string[] = [
   'session id',
+  'transaction no',
+  'transaction no.',
+  'transaction number',
+  'transaction receipt',
+  'share receipt',
+  'payment receipt',
+  'transfer receipt',
   'nibss',
   'nip',
   'transfer successful',
@@ -50,22 +57,36 @@ const PAYMENT_KEYWORDS_HIGH: string[] = [
   'payment successful',
   'debit successful',
   'money sent',
+  'successful',
   'transaction reference',
   'transaction id',
   'transaction ref',
   'reference number',
   'trace id',
   'rrn',           // Retrieval Reference Number (POS)
-  'stan',          // System Trace Audit Number
   'beneficiary',
+  'beneficiary details',
   'beneficiary name',
+  'recipient details',
+  'recipient detail',
   'recipient account',
   'account credited',
   'account debited',
+  'sender details',
+  'sender detail',
   'sender name',
   'receiver name',
   'originating bank',
   'destination bank',
+  'opay',
+  'moniepoint',
+  'palmpay',
+  'kuda',
+  'central bank of nigeria',
+  'licensed by the central bank',
+  'insured by the ndic',
+  'insured by ndic',
+  'ndic'
 ];
 
 /** Medium-signal banking words — common in receipts but also in invoices */
@@ -85,10 +106,9 @@ const PAYMENT_KEYWORDS_MEDIUM: string[] = [
   'first bank', 'firstbank', 'fbn',
   'uba', 'united bank',
   'wema', 'alat',
-  'opay', 'paycom',
-  'moniepoint', 'monie point',
-  'palmpay', 'palm pay',
-  'kuda',
+  'paycom',
+  'monie point',
+  'palm pay',
   'stanbic', 'stanbic ibtc',
   'sterling bank',
   'fidelity bank',
@@ -104,7 +124,7 @@ const PAYMENT_KEYWORDS_MEDIUM: string[] = [
   'ngn',
 ];
 
-/** Phrases that signal the document is NOT a payment receipt */
+/** Phrases that signal the document is strictly NOT a payment receipt */
 const NOT_RECEIPT_SIGNALS: string[] = [
   'invoice',
   'invoice no',
@@ -118,18 +138,15 @@ const NOT_RECEIPT_SIGNALS: string[] = [
   'payslip',
   'pay stub',
   'salary slip',
-  'airtime',
-  'data bundle',
-  'subscription plan',
-  'your plan',
-  'chat',
-  'whatsapp',
-  'message',
-  'sent',         // "sent" alone (WhatsApp message status)
+  'airtime purchase',
+  'data bundle purchase',
   'national id',
+  'voter card',
   'passport',
   'driving licence',
-  'certificate',
+  'driver license',
+  'academic certificate',
+  'degree certificate',
   'statement of account',
   'bank statement',
   'account statement',
@@ -188,10 +205,10 @@ function hasLongNumericSequence(text: string): boolean {
 }
 
 /**
- * Quick check for 10-digit Nigerian account number pattern
+ * Quick check for 10-digit Nigerian account number or masked mobile wallet pattern (e.g. 814****740)
  */
 function hasAccountNumber(text: string): boolean {
-  return /\b[0-9]{10}\b/.test(text);
+  return /\b[0-9]{10}\b/.test(text) || /\b[0-9]{3}[*+]{2,5}[0-9]{3,4}\b/.test(text);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -250,7 +267,7 @@ async function classifyWithHeuristics(file: File): Promise<ReceiptClassification
   }
 
   // 2. Strong not-a-receipt signal overrides weak payment signals
-  if (negScore >= 3 && totalPaymentScore <= 2) {
+  if (negScore >= 2 && totalPaymentScore <= 1 && !hasLongNum) {
     return {
       documentType: 'NOT_A_RECEIPT',
       confidence: 'HIGH',
@@ -262,12 +279,26 @@ async function classifyWithHeuristics(file: File): Promise<ReceiptClassification
     };
   }
 
-  // 3. High-confidence payment receipt: 2+ high-signal keywords AND a long reference number
-  if (highScore >= 2 && hasLongNum) {
+  // 3. Genuine Nigerian bank / FinTech payment receipt:
+  // Has a transaction reference number (10-34 digits) AND at least one payment keyword
+  if (hasLongNum && (highScore >= 1 || mediumScore >= 1) && negScore === 0) {
+    return {
+      documentType: 'PAYMENT_RECEIPT',
+      confidence: (highScore >= 2 || totalPaymentScore >= 3) ? 'HIGH' : 'MEDIUM',
+      reason: `Authentic Nigerian transfer receipt confirmed: ${allFound.slice(0, 4).join(', ')}. Reference number detected.`,
+      detectedKeywords: allFound,
+      isPaymentReceipt: true,
+      classifiedBy: 'KEYWORD_HEURISTIC',
+      score: totalPaymentScore,
+    };
+  }
+
+  // 4. High-signal keywords even if long number was partially segmented
+  if (highScore >= 2 && negScore <= 1) {
     return {
       documentType: 'PAYMENT_RECEIPT',
       confidence: 'HIGH',
-      reason: `Receipt indicators confirmed: ${highFound.slice(0, 3).join(', ')}. Transaction reference number detected.`,
+      reason: `Receipt indicators confirmed: ${highFound.slice(0, 4).join(', ')}.`,
       detectedKeywords: allFound,
       isPaymentReceipt: true,
       classifiedBy: 'KEYWORD_HEURISTIC',
@@ -275,27 +306,14 @@ async function classifyWithHeuristics(file: File): Promise<ReceiptClassification
     };
   }
 
-  // 4. Medium-confidence: at least 1 high-signal + account number, or 3+ medium-signal + long num
-  if ((highScore >= 1 && hasAcct) || (mediumScore >= 3 && hasLongNum)) {
+  // 5. Medium confidence payment indicators
+  if ((highScore >= 1 && hasAcct) || (totalPaymentScore >= 2 && negScore === 0)) {
     return {
       documentType: 'PAYMENT_RECEIPT',
       confidence: 'MEDIUM',
-      reason: `Partial receipt indicators found (${allFound.slice(0, 4).join(', ')}). Please confirm fields in the review panel.`,
+      reason: `Partial receipt indicators found (${allFound.slice(0, 4).join(', ')}). Review extracted fields in the inspection panel.`,
       detectedKeywords: allFound,
       isPaymentReceipt: true,
-      classifiedBy: 'KEYWORD_HEURISTIC',
-      score: totalPaymentScore,
-    };
-  }
-
-  // 5. Some banking keywords but weak evidence — flag as LOW CONFIDENCE
-  if (totalPaymentScore >= 2) {
-    return {
-      documentType: 'UNKNOWN',
-      confidence: 'LOW',
-      reason: `Found some banking keywords (${allFound.slice(0, 3).join(', ')}) but insufficient evidence of a payment receipt. Please verify manually.`,
-      detectedKeywords: allFound,
-      isPaymentReceipt: false,
       classifiedBy: 'KEYWORD_HEURISTIC',
       score: totalPaymentScore,
     };

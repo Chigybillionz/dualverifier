@@ -60,7 +60,7 @@ export function parseNigerianReceiptText(text: string): Partial<ExtractedReceipt
   // 1. Session ID / Transaction Reference extraction
   // Look for canonical 30 digits or 20-34 digits
   const longNumMatch = text.match(/\b([0-9]{20,34})\b/);
-  const sessionPatternMatch = text.match(/(?:Session\s*ID|Transaction\s*(?:ID|Ref|No)|Reference(?:\s*No)?|Ref|Order\s*No|Trace\s*ID)[:\s#]*([0-9a-zA-Z]{18,34})/i);
+  const sessionPatternMatch = text.match(/(?:Session\s*ID|Transaction\s*(?:ID|Ref|No|N|Number)?|Reference(?:\s*No)?|Ref|Order\s*No|Trace\s*ID)[:\s#]*([0-9a-zA-Z]{18,34})/i);
 
   if (sessionPatternMatch && sessionPatternMatch[1]) {
     sessionId = sessionPatternMatch[1].replace(/[^0-9]/g, '');
@@ -68,8 +68,8 @@ export function parseNigerianReceiptText(text: string): Partial<ExtractedReceipt
     sessionId = longNumMatch[1];
   }
 
-  // 2. Amount extraction (e.g. ₦50,000.00, NGN 120,000, Amount: 45,000)
-  const amountMatch = text.match(/(?:(?:Amount|Total|Amt|Transfer Amount)[\s:.-]*)?(?:₦|NGN|\bN\b)\s*([0-9,]+(?:\.[0-9]{2})?)/i)
+  // 2. Amount extraction (e.g. ₦8,000.00, $8,000.00, NGN 120,000, Amount: 45,000)
+  const amountMatch = text.match(/(?:(?:Amount|Total|Amt|Transfer Amount)[\s:.-]*)?(?:₦|NGN|\bN\b|\$)\s*([0-9,]+(?:\.[0-9]{2})?)/i)
     || text.match(/(?:Amount|Total|Amt)[\s:.-]+([0-9,]+(?:\.[0-9]{2})?)/i);
 
   if (amountMatch && amountMatch[1]) {
@@ -96,34 +96,64 @@ export function parseNigerianReceiptText(text: string): Partial<ExtractedReceipt
     }
   }
 
+  // If mobile FinTech transfer (e.g. OPay, Moniepoint, PalmPay)
+  if (lowerText.includes('opay') && (!senderBank || !receiverBank)) {
+    if (!senderBank) senderBank = 'OPay Digital Services';
+    if (!receiverBank) receiverBank = 'OPay Digital Services';
+  } else if (lowerText.includes('moniepoint') && (!senderBank || !receiverBank)) {
+    if (!senderBank) senderBank = 'Moniepoint Microfinance Bank';
+    if (!receiverBank) receiverBank = 'Moniepoint Microfinance Bank';
+  } else if (lowerText.includes('palmpay') && (!senderBank || !receiverBank)) {
+    if (!senderBank) senderBank = 'PalmPay Limited';
+    if (!receiverBank) receiverBank = 'PalmPay Limited';
+  }
+
   // 4. Sender & Receiver Name heuristic
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/(?:Sender(?:\s*Name)?|From|Payer|Debit Account)[:\s]*(.*)/i.test(line)) {
-      const match = line.replace(/(?:Sender(?:\s*Name)?|From|Payer|Debit Account)[:\s]*/i, '').trim();
+    if (/(?:Sender(?:\s*(?:Name|Details?))?|From|Payer|Debit Account)[:\s]*(.*)/i.test(line)) {
+      const match = line.replace(/(?:Sender(?:\s*(?:Name|Details?))?|From|Payer|Debit Account)[:\s]*/i, '').trim();
       if (match.length > 2) senderName = match;
       else if (i + 1 < lines.length) senderName = lines[i + 1];
     }
-    if (/(?:Beneficiary(?:\s*Name)?|To|Recipient|Credit Account)[:\s]*(.*)/i.test(line)) {
-      const match = line.replace(/(?:Beneficiary(?:\s*Name)?|To|Recipient|Credit Account)[:\s]*/i, '').trim();
+    if (/(?:Beneficiary(?:\s*(?:Name|Details?))?|Recipient(?:\s*(?:Name|Details?))?|To|Credit Account)[:\s]*(.*)/i.test(line)) {
+      const match = line.replace(/(?:Beneficiary(?:\s*(?:Name|Details?))?|Recipient(?:\s*(?:Name|Details?))?|To|Credit Account)[:\s]*/i, '').trim();
       if (match.length > 2) receiverName = match;
       else if (i + 1 < lines.length) receiverName = lines[i + 1];
     }
-    // Account number detection (10 digits)
+    // Account number detection (10 digits or masked phone/wallet like 814****740)
     const acctMatch = line.match(/\b([0-9]{10})\b/);
+    const maskedAcctMatch = line.match(/\b([0-9]{3}[*+]{2,5}[0-9]{3,4})\b/);
     if (acctMatch && !receiverAccount) {
       receiverAccount = acctMatch[1];
+    } else if (maskedAcctMatch && !receiverAccount) {
+      receiverAccount = maskedAcctMatch[1].replace(/\+/g, '*');
     }
   }
 
   // 5. Date / Timestamp extraction
-  // Matches e.g. 2026-03-15 14:30:22 or 15/03/2026 or 15 Mar 2026 14:30
+  // Matches e.g. 2026-03-15 14:30:22 or 15/03/2026 or 15 Mar 2026 14:30 or Nov 6th, 2026
   const dateMatch = text.match(/([0-9]{4}-[0-9]{2}-[0-9]{2}[\sT][0-9]{2}:[0-9]{2}(?::[0-9]{2})?)/)
     || text.match(/([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4}(?:\s+[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)?)/)
-    || text.match(/([0-9]{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+[0-9]{4}(?:\s+[0-9]{1,2}:[0-9]{2})?)/i);
+    || text.match(/(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+[0-9]{1,2}(?:st|nd|rd|th)?[\s,]+[0-9]{4}(?:\s+[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)?)/i)
+    || text.match(/([0-9]{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+[0-9]{4}(?:\s+[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?)?)/i);
 
-  if (dateMatch && dateMatch[1]) {
-    receiptTimestamp = dateMatch[1];
+  if (dateMatch && dateMatch[0]) {
+    receiptTimestamp = dateMatch[0];
+  } else if (sessionId.length >= 12) {
+    // If visual timestamp wasn't OCRed, derive directly from FinTech timestamp-indexed reference (e.g. 261106010100 -> 2026-11-06 01:01:00)
+    const yy = sessionId.substring(0, 2);
+    const mm = sessionId.substring(2, 4);
+    const dd = sessionId.substring(4, 6);
+    const hh = sessionId.substring(6, 8);
+    const min = sessionId.substring(8, 10);
+    const ss = sessionId.substring(10, 12);
+    const yNum = parseInt(yy, 10);
+    const mNum = parseInt(mm, 10);
+    const dNum = parseInt(dd, 10);
+    if (yNum >= 20 && yNum <= 35 && mNum >= 1 && mNum <= 12 && dNum >= 1 && dNum <= 31) {
+      receiptTimestamp = `20${yy}-${mm}-${dd} ${hh}:${min}:${ss} WAT`;
+    }
   }
 
   return {
