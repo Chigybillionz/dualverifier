@@ -4,8 +4,8 @@
       <!-- Left: Zcash Official Gold Circular Emblem + DualVerifier Brand -->
       <div class="flex items-center space-x-3.5">
         <a href="#" class="flex items-center space-x-3 group">
-          <!-- Official DualVerifier Zcash Verification Shield Emblem -->
-          <div class="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center shadow-lg shadow-[#F4B728]/25 group-hover:scale-105 transition-transform flex-shrink-0 border border-[#F4B728]/40 bg-black">
+          <!-- Official DualVerifier Zcash Verification Shield Emblem (Onchain + Local Verified) -->
+          <div class="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center shadow-lg shadow-[#F4B728]/25 group-hover:scale-105 transition-transform flex-shrink-0 border border-[#F4B728]/40 bg-black">
             <img src="/logo.png" alt="DualVerifier Logo" class="w-full h-full object-cover rounded-full" />
           </div>
 
