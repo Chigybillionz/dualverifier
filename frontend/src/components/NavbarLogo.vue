@@ -48,8 +48,42 @@
         </button>
       </nav>
 
-      <!-- 3. Right: Utility Controls (Guide, Status, Ledger) -->
+      <!-- 3. Right: Utility Controls (DID Account, History Icon, Guide, Ledger) -->
       <div class="flex items-center space-x-2 shrink-0">
+        <!-- DID User Identity Pill -->
+        <button
+          @click="$emit('open-did-account')"
+          type="button"
+          class="inline-flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-800 hover:border-blue-500/50 text-xs font-mono transition-all shadow-sm active:scale-95"
+          title="Manage Decentralized Identity & Devices"
+        >
+          <span class="w-2 h-2 rounded-full" :class="isDeveloper ? 'bg-amber-400' : 'bg-emerald-400'"></span>
+          <span class="font-bold text-blue-400 hidden sm:inline">{{ currentUser?.displayName ? currentUser.displayName.split(' ')[0] : 'DID' }}</span>
+          <span class="text-slate-400 font-mono text-[11px] truncate max-w-[80px] sm:max-w-[100px]">
+            {{ currentUser?.did ? currentUser.did.slice(0, 10) + '...' : 'did:key...' }}
+          </span>
+        </button>
+
+        <!-- Personal Authentication History Icon (Clear History Trigger) -->
+        <button
+          @click="$emit('open-history')"
+          type="button"
+          class="inline-flex items-center space-x-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-300 hover:text-white border border-blue-500/40 hover:border-blue-400 text-xs font-mono font-bold transition-all shadow-sm active:scale-95"
+          title="Open My Authentication History"
+        >
+          <!-- Clear History / Activity Icon -->
+          <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="text-[11px] sm:text-xs uppercase tracking-wider">My History</span>
+          <span
+            v-if="(userHistoryCount || 0) > 0"
+            class="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[10px] font-mono font-bold shadow-sm"
+          >
+            {{ userHistoryCount }}
+          </span>
+        </button>
+
         <!-- Anti-Fraud Guide Trigger (Nielsen #10: Help & Docs) -->
         <button
           @click="$emit('open-guide')"
@@ -64,25 +98,17 @@
           <span class="lg:hidden">Guide</span>
         </button>
 
-        <!-- Live Network Pill -->
-        <div class="hidden xl:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] font-mono text-slate-300">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Stellar Testnet</span>
-        </div>
-
         <!-- Claims Ledger Drawer Trigger -->
         <button
           @click="$emit('open-ledger')"
           type="button"
-          class="inline-flex items-center space-x-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-200 hover:text-white border border-slate-800 hover:border-slate-700 text-xs font-mono font-semibold transition-all shadow-sm active:scale-95"
+          class="hidden lg:inline-flex items-center space-x-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 text-xs font-mono transition-all shadow-sm active:scale-95"
+          title="View Public Stellar Claims Ledger"
         >
-          <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          <span class="text-[11px] sm:text-xs uppercase tracking-wider">Ledger</span>
+          <span class="text-[11px] uppercase tracking-wider">On-Chain Anchors</span>
           <span
             v-if="memoCount > 0"
-            class="px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-mono border border-blue-500/30 font-bold"
+            class="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 text-[10px] font-mono"
           >
             {{ memoCount }}
           </span>
@@ -126,14 +152,19 @@
 </template>
 
 <script setup lang="ts">
+import { currentUser, isDeveloper } from '../utils/auth';
+
 defineProps<{
   activeRail: 'LOCAL_BANK' | 'POLLAR_STELLAR' | 'ZCASH';
   memoCount: number;
+  userHistoryCount?: number;
 }>();
 
 defineEmits<{
   (e: 'update:activeRail', rail: 'LOCAL_BANK' | 'POLLAR_STELLAR' | 'ZCASH'): void;
   (e: 'open-ledger'): void;
   (e: 'open-guide'): void;
+  (e: 'open-history'): void;
+  (e: 'open-did-account'): void;
 }>();
 </script>

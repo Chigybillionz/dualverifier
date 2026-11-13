@@ -4,9 +4,12 @@
     <NavbarLogo
       :activeRail="activeRail"
       :memoCount="shieldedMemos.length"
+      :userHistoryCount="personalHistoryCount"
       @update:activeRail="activeRail = $event"
       @open-ledger="isLedgerOpen = true"
       @open-guide="isGuideOpen = true"
+      @open-history="scrollToHistory"
+      @open-did-account="isDidModalOpen = true"
     />
 
     <!-- 2. 1-Click Test Lab (Sticky, Evenly-Aligned Scenarios) -->
@@ -176,7 +179,13 @@
 
       </div>
 
-      <!-- MODULE 4: LIVE VERIFICATION AUDIT LEDGER TABLE AT BOTTOM OF PAGE -->
+      <!-- DEDICATED USER AUTHENTICATION HISTORY DASHBOARD (Requirement 3: Dedicated Dashboard) -->
+      <AuthenticationHistoryDashboard
+        ref="authHistoryDashboardRef"
+        @select-record="handleSelectAuthRecord"
+      />
+
+      <!-- MODULE 4: LIVE ON-CHAIN CLAIMS LEDGER (PUBLIC BLOCKCHAIN ANCHORS) -->
       <section id="audit-ledger" class="pt-2 sm:pt-4 border-t border-slate-800/80">
         <details class="group rounded-3xl bg-[#0E1424] border border-slate-800 p-4">
           <summary class="cursor-pointer font-bold text-xs uppercase tracking-wider text-slate-300 hover:text-white flex items-center justify-between list-none select-none">
@@ -220,6 +229,13 @@
     <AntiFraudGuideModal
       :isOpen="isGuideOpen"
       @close="isGuideOpen = false"
+    />
+
+    <!-- DID Account & Device Isolation Modal (Requirement 1, 4 & 7) -->
+    <DidAccountModal
+      :isOpen="isDidModalOpen"
+      @close="isDidModalOpen = false"
+      @account-changed="handleAccountChanged"
     />
 
     <!-- MODULE 3: PRINTABLE / SHAREABLE QR VERIFICATION CERTIFICATE MODAL -->
@@ -319,6 +335,16 @@ import ProofCertificateModal from './components/ProofCertificateModal.vue';
 import AntiFraudGuideModal from './components/AntiFraudGuideModal.vue';
 import VerificationHistoryDrawer, { HistoryAuditItem } from './components/VerificationHistoryDrawer.vue';
 import ReceiptVisualModal from './components/ReceiptVisualModal.vue';
+import AuthenticationHistoryDashboard from './components/AuthenticationHistoryDashboard.vue';
+import DidAccountModal from './components/DidAccountModal.vue';
+import {
+  initAuth,
+  currentUser,
+  currentSession,
+  isDeveloper,
+  getAuthHeaders,
+  type AuthenticationHistoryRecord
+} from './utils/auth';
 import { apiUrl } from './utils/api';
 import { MOCK_DEMO_PRESETS } from './data/mockDemoPresets';
 
@@ -329,6 +355,7 @@ const isLedgerOpen = ref(false);
 const isGuideOpen = ref(false);
 const isReceiptModalOpen = ref(false);
 const isCertificateModalOpen = ref(false);
+const isDidModalOpen = ref(false);
 
 const activeBlueCard = ref<any>(null);
 const certificateModalCard = ref<any>(null);
@@ -337,59 +364,14 @@ const currentPresetVisual = ref<any>(null);
 
 const localVerifierRef = ref<any>(null);
 const pollarVerifierRef = ref<any>(null);
+const authHistoryDashboardRef = ref<any>(null);
+
+const personalHistoryCount = ref(0);
 
 let demoPresets: any[] = [...MOCK_DEMO_PRESETS];
 
-// Pre-populated realistic session entries for the live audit ledger
-const auditHistoryItems = ref<HistoryAuditItem[]>([
-  {
-    id: 'hist-1',
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    rail: 'LOCAL_BANK',
-    sender: 'Alhaji Ibrahim Danladi (Zenith Bank)',
-    receiver: 'Chukwudi Superstores (Moniepoint)',
-    amount: '₦120,000.00',
-    currency: 'NGN',
-    proofHash: '0x4f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a',
-    status: 'VERIFIED',
-    badgeTitle: 'VERIFIED AUTHENTIC',
-    fullBlueCard: {
-      rail: 'LOCAL_BANK',
-      status: 'VERIFIED',
-      badgeTitle: 'VERIFIED AUTHENTIC',
-      badgeColor: 'emerald',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      proofHash: '0x4f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a',
-      routingPipeline: {
-        sender: {
-          title: 'Originating Sender (Web2)',
-          identifier: 'Alhaji Ibrahim Danladi',
-          institution: 'Zenith Bank PLC (000015)',
-          bankLogoColor: '#c51b24',
-          verified: true
-        },
-        rail: {
-          type: 'NIBSS Instant Payment (NIP)',
-          identifier: '000015250410123045982143658709',
-          timestamp: '10 Apr 2025, 12:30:45',
-          protocol: 'CBN Gateway + Stellar Anchor',
-          verified: true
-        },
-        receiver: {
-          title: 'Settled Recipient (Merchant)',
-          identifier: 'Chukwudi Superstores (2210984532)',
-          institution: 'Moniepoint MFB',
-          amountFormatted: '₦120,000.00',
-          currency: 'NGN',
-          verified: true
-        }
-      },
-      forensics: {
-        flags: []
-      }
-    }
-  }
-]);
+// Session audit ledger starts clean - zero cross-account data leaks
+const auditHistoryItems = ref<HistoryAuditItem[]>([]);
 
 const totalReplaysBlocked = computed(() => {
   return shieldedMemos.value.reduce((sum, r) => sum + Math.max(0, (r.claimCount || 1) - 1), 0);
@@ -427,31 +409,19 @@ async function fetchShieldedMemos() {
   } catch (err) {}
 }
 
-async function fetchAuditHistory() {
+async function fetchPersonalHistory() {
   try {
-    const res = await fetch(apiUrl('/api/history'));
-    const json = await res.json();
-    if (json.success && json.history && json.history.length > 0) {
-      for (const item of json.history) {
-        if (!auditHistoryItems.value.some(h => h.proofHash === item.memoHash)) {
-          auditHistoryItems.value.push({
-            id: `server-${item.id}`,
-            timestamp: item.timestamp,
-            rail: item.rail,
-            sender: item.sender,
-            receiver: item.receiver,
-            amount: item.amountFormatted,
-            currency: item.currency,
-            proofHash: item.memoHash,
-            status: item.status,
-            badgeTitle: item.badgeTitle,
-            fullBlueCard: null
-          });
-        }
+    const res = await fetch(apiUrl('/api/authentication-history/me?limit=1'), {
+      headers: getAuthHeaders()
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.stats) {
+        personalHistoryCount.value = data.stats.totalVerifications || 0;
       }
     }
   } catch (err) {
-    console.warn('Failed to load history:', err);
+    console.warn('Failed to load personal history stats:', err);
   }
 }
 
@@ -467,10 +437,11 @@ async function fetchPresets() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await initAuth();
   fetchPresets();
   fetchShieldedMemos();
-  fetchAuditHistory();
+  fetchPersonalHistory();
 });
 
 function fireConfetti() {
@@ -514,16 +485,22 @@ async function handleVerifyLocal(payload: any) {
   }
   isLoading.value = true;
   try {
+    const authHeaders = getAuthHeaders();
     let res: Response;
     if (payload.mode === 'file') {
+      const headers: Record<string, string> = {};
+      if (authHeaders['Authorization']) {
+        headers['Authorization'] = authHeaders['Authorization'];
+      }
       res = await fetch(apiUrl('/api/verify/local'), {
         method: 'POST',
+        headers,
         body: payload.formData
       });
     } else {
       res = await fetch(apiUrl('/api/verify/local'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify(payload.data)
       });
     }
@@ -532,6 +509,8 @@ async function handleVerifyLocal(payload: any) {
     if (data.success && data.blueCard) {
       activeBlueCard.value = data.blueCard;
       appendToAuditHistory(data.blueCard);
+      authHistoryDashboardRef.value?.refresh?.();
+      await fetchPersonalHistory();
       if (data.blueCard.status === 'VERIFIED') fireConfetti();
       await fetchShieldedMemos();
     } else {
@@ -549,7 +528,7 @@ async function handleVerifyPollar(payload: any) {
   try {
     const res = await fetch(apiUrl('/api/verify/pollar'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     });
 
@@ -557,6 +536,8 @@ async function handleVerifyPollar(payload: any) {
     if (data.success && data.blueCard) {
       activeBlueCard.value = data.blueCard;
       appendToAuditHistory(data.blueCard);
+      authHistoryDashboardRef.value?.refresh?.();
+      await fetchPersonalHistory();
       if (data.blueCard.status === 'VERIFIED') fireConfetti();
     } else {
       alert(data.error || 'Pollar verification error');
@@ -674,6 +655,64 @@ function handleSelectHistoryItem(item: HistoryAuditItem) {
   certificateModalCard.value = item.fullBlueCard;
   isCertificateModalOpen.value = true;
   activeRail.value = item.rail;
+}
+
+function handleSelectAuthRecord(rec: AuthenticationHistoryRecord) {
+  const card = {
+    rail: rec.verificationResult.rail,
+    status: rec.verificationStatus === 'SUCCESS' ? 'VERIFIED' : rec.verificationStatus,
+    badgeTitle: rec.verificationResult.badgeTitle,
+    badgeColor: rec.verificationResult.badgeColor,
+    timestamp: rec.createdAt,
+    proofHash: rec.verificationResult.proofHash,
+    routingPipeline: {
+      sender: {
+        title: 'Originating Sender',
+        identifier: rec.verificationResult.sender,
+        institution: 'Verified DID Channel',
+        bankLogoColor: '#3b82f6',
+        verified: true
+      },
+      rail: {
+        type: rec.verificationResult.rail === 'LOCAL_BANK' ? 'NIBSS Instant Payment (NIP)' : 'Pollar Stellar Escrow',
+        identifier: rec.transactionReference,
+        timestamp: new Date(rec.createdAt).toLocaleString(),
+        protocol: 'DualVerifier Engine',
+        verified: true
+      },
+      receiver: {
+        title: 'Settled Recipient',
+        identifier: rec.verificationResult.receiver,
+        institution: 'Merchant Wallet',
+        amountFormatted: rec.verificationResult.amount,
+        currency: rec.verificationResult.currency,
+        verified: rec.verificationStatus === 'SUCCESS'
+      }
+    },
+    forensics: {
+      flags: rec.verificationResult.flags || []
+    }
+  };
+
+  activeBlueCard.value = card;
+  certificateModalCard.value = card;
+  isCertificateModalOpen.value = true;
+  activeRail.value = rec.verificationResult.rail;
+}
+
+function scrollToHistory() {
+  const el = document.getElementById('my-authentication-history');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+async function handleAccountChanged() {
+  activeBlueCard.value = null;
+  certificateModalCard.value = null;
+  auditHistoryItems.value = [];
+  authHistoryDashboardRef.value?.refresh?.();
+  await fetchPersonalHistory();
 }
 
 async function handleResetRecord(proofHash: string) {

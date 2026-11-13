@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "tsx src/tests/authHistory.test.ts",
+    "test:http": "tsx src/tests/e2eHttpAuthHistory.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.0",

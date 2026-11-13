@@ -10,6 +10,9 @@ import { zcashVerifier } from './services/zcashVerifier.js';
 import { zcashMemoRegistry } from './services/zcashMemoRegistry.js';
 import { getAllCbnBanks } from './config/cbnBankCodes.js';
 import { MOCK_DEMO_PRESETS } from './data/mockDemoPresets.js';
+import authHistoryRoutes from './routes/authHistoryRoutes.js';
+import { optionalAuth } from './middleware/authMiddleware.js';
+import { authHistoryDatabase } from './services/authHistoryDatabase.js';
 
 dotenv.config();
 
@@ -24,6 +27,8 @@ const upload = multer({
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+app.use(optionalAuth);
+app.use('/api', authHistoryRoutes);
 
 // Health Check
 app.get('/api/health', (_req, res) => {
@@ -118,7 +123,46 @@ app.post('/api/verify/local', upload.single('receipt'), async (req, res) => {
       merchantId: req.body.claimantMerchant || req.body.merchantId
     });
 
-    res.status(200).json({ success: true, blueCard });
+    // Record in authenticated user's private history if logged in
+    let historyRecord = null;
+    if (req.user) {
+      let vStatus: 'SUCCESS' | 'FAILED' | 'DUPLICATE' | 'TAMPERED' = 'SUCCESS';
+      if (blueCard.status === 'DUPLICATE') {
+        vStatus = 'DUPLICATE';
+      } else if (blueCard.status === 'TAMPERED') {
+        vStatus = 'TAMPERED';
+      } else if (blueCard.status !== 'VERIFIED') {
+        vStatus = 'FAILED';
+      }
+
+      historyRecord = authHistoryDatabase.recordAuthentication({
+        userId: req.user.userId,
+        did: req.user.did,
+        sessionId: req.user.sessionId,
+        deviceId: req.user.deviceId,
+        deviceName: req.user.deviceName,
+        deviceType: req.user.deviceType,
+        authenticationMethod: 'DID_KEY_PASSKEY',
+        verificationStatus: vStatus,
+        transactionReference: sessionId || blueCard.proofHash,
+        verificationResult: {
+          rail: 'LOCAL_BANK',
+          badgeTitle: blueCard.badgeTitle,
+          badgeColor: blueCard.badgeColor || 'emerald',
+          sender: `${senderBank}: ${senderName}`,
+          receiver: `${receiverBank}: ${receiverName}`,
+          amount: `₦${Number(amount).toLocaleString()}`,
+          currency,
+          proofHash: blueCard.proofHash,
+          flags: blueCard.forensics?.flags || []
+        },
+        ipAddress: (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        isDeveloperLog: req.user.role === 'developer'
+      });
+    }
+
+    res.status(200).json({ success: true, blueCard, historyRecord });
   } catch (err: any) {
     console.error('[API /verify/local] Error:', err);
     res.status(500).json({ success: false, error: err.message || 'Local verification error' });
@@ -134,7 +178,48 @@ app.post('/api/verify/pollar', async (req, res) => {
       walletAddress,
       sessionId
     });
-    res.status(200).json({ success: true, blueCard });
+
+    // Record in authenticated user's private history if logged in
+    let historyRecord = null;
+    if (req.user) {
+      let vStatus: 'SUCCESS' | 'FAILED' | 'DUPLICATE' | 'TAMPERED' = 'SUCCESS';
+      if (blueCard.status === 'DUPLICATE') {
+        vStatus = 'DUPLICATE';
+      } else if (blueCard.status === 'TAMPERED') {
+        vStatus = 'TAMPERED';
+      } else if (blueCard.status !== 'VERIFIED') {
+        vStatus = 'FAILED';
+      }
+
+      historyRecord = authHistoryDatabase.recordAuthentication({
+        userId: req.user.userId,
+        did: req.user.did,
+        sessionId: req.user.sessionId,
+        deviceId: req.user.deviceId,
+        deviceName: req.user.deviceName,
+        deviceType: req.user.deviceType,
+        authenticationMethod: 'DID_POLLAR_WEB3',
+        verificationStatus: vStatus,
+        transactionReference: txid || sessionId || blueCard.proofHash,
+        verificationResult: {
+          rail: 'POLLAR_STELLAR',
+          badgeTitle: blueCard.badgeTitle,
+          badgeColor: blueCard.badgeColor || 'emerald',
+          sender: blueCard.routingPipeline?.sender?.identifier || walletAddress || 'Stellar Signer',
+          receiver: blueCard.routingPipeline?.receiver?.identifier || 'Merchant Settlement',
+          amount: blueCard.routingPipeline?.receiver?.amountFormatted || 'USDC Settlement',
+          currency: 'USDC',
+          proofHash: blueCard.proofHash,
+          stellarTxHash: txid,
+          flags: blueCard.forensics?.flags || []
+        },
+        ipAddress: (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        isDeveloperLog: req.user.role === 'developer'
+      });
+    }
+
+    res.status(200).json({ success: true, blueCard, historyRecord });
   } catch (err: any) {
     console.error('[API /verify/pollar] Error:', err);
     res.status(500).json({ success: false, error: err.message || 'Pollar verification error' });
@@ -290,34 +375,41 @@ Be strict. If in doubt and the document does not clearly show a completed Nigeri
   }
 });
 
-// Session Audit Ledger / Verified Attestations
-app.get('/api/history', (_req, res) => {
-  const pollarRecords = pollarRegistry.getAllRecords();
-  const history = pollarRecords.map(r => ({
-    id: r.proofHash,
-    timestamp: r.firstVerifiedAtIso,
-    rail: 'POLLAR_STELLAR',
-    sender: r.sender,
-    receiver: r.receiver,
-    amountFormatted: `₦${Number(r.amount).toLocaleString()} (${r.payoutAmount} USDC)`,
-    amount: r.amount,
-    currency: r.currency,
-    memoHash: r.proofHash,
-    stellarTxHash: r.stellarTxHash,
-    stellarLedgerSeq: r.stellarLedgerSeq,
-    merchantPollarWallet: r.merchantPollarWallet,
-    payoutAsset: r.payoutAsset,
-    payoutAmount: r.payoutAmount,
-    gaslessSponsored: r.gaslessSponsored,
-    claimCount: r.claimCount,
-    isReplay: r.isReplay,
-    status: r.claimCount > 1 ? 'DUPLICATE' : 'VERIFIED',
-    badgeTitle: r.claimCount > 1 ? `DUPLICATE (CLAIM #${r.claimCount})` : 'VERIFIED AUTHENTIC',
-    stellarMemoText: r.stellarMemoText,
-    explorerUrl: r.explorerUrl
-  }));
+// Session Audit Ledger / Verified Attestations (User-Specific Isolation)
+app.get('/api/history', (req, res) => {
+  // STRICT USER PRIVACY ISOLATION:
+  // If user is authenticated, return ONLY their private history records.
+  // If unauthenticated, return empty list to prevent cross-account data leaks.
+  if (req.user) {
+    const userHistory = authHistoryDatabase.getUserHistory(req.user.userId, { limit: 50 });
+    const history = userHistory.records.map(r => ({
+      id: r.id,
+      timestamp: r.createdAt,
+      rail: r.verificationResult.rail,
+      sender: r.verificationResult.sender,
+      receiver: r.verificationResult.receiver,
+      amountFormatted: r.verificationResult.amount,
+      amount: r.verificationResult.amount,
+      currency: r.verificationResult.currency,
+      memoHash: r.verificationResult.proofHash,
+      stellarTxHash: r.verificationResult.stellarTxHash,
+      status: r.verificationStatus,
+      badgeTitle: r.verificationResult.badgeTitle,
+      transactionReference: r.transactionReference,
+      deviceId: r.deviceId,
+      deviceName: r.deviceName
+    }));
+    res.json({ success: true, history, authenticated: true });
+    return;
+  }
 
-  res.json({ success: true, history });
+  // Unauthenticated guests see an empty history list (never another user's or developer's records)
+  res.json({
+    success: true,
+    history: [],
+    authenticated: false,
+    message: 'Authentication required: Log in with your DID to view your private authentication history.'
+  });
 });
 
 // Demo Presets
