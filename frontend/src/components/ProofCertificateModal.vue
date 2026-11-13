@@ -27,7 +27,7 @@
                 : 'bg-rose-500 text-white'
             ]"
           >
-            {{ card.rail === 'LOCAL_BANK' ? '₦' : 'ⓩ' }}
+            {{ card.rail === 'LOCAL_BANK' ? '₦' : '⭐' }}
           </div>
 
           <div>
