@@ -123,7 +123,7 @@
 
         <div class="pl-10 space-y-2 pt-1">
           <p class="text-[11px] text-stone-400 leading-normal">
-            DualVerifier only verifies genuine <strong>Nigerian inter-bank transfer receipts</strong> (OPay, Moniepoint, PalmPay, GTBank, Zenith, Access Bank, etc.) and Zcash blockchain transactions. Invoices, screenshots, and non-payment documents cannot be verified.
+            DualVerifier only verifies genuine <strong>Nigerian inter-bank transfer receipts</strong> (OPay, Moniepoint, PalmPay, GTBank, Zenith, Access Bank, etc.) and Stellar/Pollar transactions. Invoices, screenshots, and non-payment documents cannot be verified.
           </p>
 
           <div class="flex items-center space-x-3 pt-1">
@@ -152,7 +152,7 @@
           <span class="ml-auto text-[10px] font-mono text-[#F4B728]/60 border border-[#F4B728]/30 px-2 py-0.5 rounded">{{ classification.confidence }}</span>
         </div>
         <p class="text-xs text-stone-300 leading-relaxed pl-7">
-          {{ classification.reason }} Use the <span class="text-[#F4B728] font-semibold">Zcash Tab</span> to verify blockchain transactions with a Transaction ID (txid).
+          {{ classification.reason }} Use the <span class="text-emerald-400 font-semibold">Pollar Stellar Tab</span> to verify blockchain transactions with a Transaction Hash.
         </p>
       </div>
 
@@ -245,7 +245,7 @@
           <div class="space-y-0.5 text-slate-300">
             <span class="font-semibold text-emerald-400">Review & Confirm Detected Data:</span>
             <p class="text-slate-400 text-[11px] leading-relaxed">
-              {{ extractedData.confidenceNotes || 'Verify extracted transfer details below. Any field can be edited before sealing to Zcash.' }}
+              {{ extractedData.confidenceNotes || 'Verify extracted transfer details below. Any field can be edited before anchoring to Stellar via Pollar.' }}
             </p>
           </div>
         </div>
@@ -510,10 +510,10 @@
             (inputMode === 'upload' && classification && !classification.isPaymentReceipt)
               ? 'Verification Inactive — Document Is Not a Payment Receipt'
               : isLoading
-              ? 'Verifying NIBSS Cryptography & Anchoring 512B Zcash Memo...'
+              ? 'Verifying NIBSS Cryptography & Anchoring to Pollar Stellar Escrow...'
               : selectedFile
-              ? 'Confirm Receipt & Anchor to Zcash Shielded Memo'
-              : 'Verify Transfer & Anchor to Zcash Shielded Memo'
+              ? 'Confirm Receipt & Release Pollar Gasless Escrow'
+              : 'Verify Transfer & Release Pollar Gasless Escrow'
           }}
         </span>
       </button>

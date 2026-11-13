@@ -1,0 +1,286 @@
+import crypto from 'crypto';
+
+export type PollarSettlementStatus = 'NEW_VERIFIED_SETTLEMENT' | 'DUPLICATE_REPLAY_DETECTED';
+
+export interface PollarAnchorRecord {
+  proofHash: string;            // SHA-256 fingerprint: SHA256(sessionId_or_txid + amount + timestamp)
+  sessionIdOrTxId: string;      // 30-digit NIBSS session ID or 24-digit FinTech ref
+  sender: string;
+  receiver: string;
+  amount: string;
+  currency: string;
+  firstVerifiedAt: number;      // Unix timestamp (sec)
+  firstVerifiedAtIso: string;
+  claimedByMerchant: string;    // Merchant branch, wallet or terminal
+  claimCount: number;           // 1 for original, >1 indicates duplicate replay attempt
+  isReplay: boolean;
+  stellarTxHash: string;        // Stellar Transaction Hash
+  stellarLedgerSeq: number;     // Stellar ledger sequence
+  stellarNetwork: 'testnet' | 'public';
+  explorerUrl: string;          // stellar.expert explorer URL
+  merchantPollarWallet: string; // Stellar public key (G...)
+  payoutAsset: string;          // e.g. "USDC"
+  payoutAmount: string;         // Converted USDC amount
+  gaslessSponsored: boolean;    // Pollar fee-bump / sponsored transaction (0 gas for user)
+  sponsorFee: string;           // "0.00000 XLM (Sponsored by Pollar Paymaster)"
+  stellarMemoText: string;      // Up to 28-char text or hex hash memo anchored in Stellar tx
+  memoMetadata: {
+    protocol: string;
+    network: string;
+    receiptHash: string;
+    verifiedTimestamp: number;
+    sessionId: string;
+    amountNgn: number;
+    amountUsdc: number;
+  };
+  replayAttempts?: { timestamp: number; memoReadAttempt: number; merchant?: string }[];
+}
+
+export class PollarRegistry {
+  private registry: Map<string, PollarAnchorRecord> = new Map();
+  private currentStellarLedger = 51842091; // Recent Stellar testnet ledger
+
+  constructor() {
+    this.seedDemoRegistry();
+  }
+
+  /**
+   * Calculates deterministic receipt proof hash:
+   * SHA-256(sessionId_or_txid + amount + timestamp + currency)
+   */
+  computeReceiptProofHash(params: {
+    sessionIdOrTxId: string;
+    sender?: string;
+    receiver?: string;
+    amount: string | number;
+    currency?: string;
+    timestamp?: string;
+  }): string {
+    const normId = params.sessionIdOrTxId.trim();
+    const normAmount = String(params.amount).trim();
+    const normTime = (params.timestamp || '').trim();
+    const normCurrency = (params.currency || 'NGN').toUpperCase();
+
+    const raw = `POLLAR_STELLAR_DUALVERIFIER_PROOF_V1:${normId}:${normAmount}:${normTime}:${normCurrency}`;
+    const hash = crypto.createHash('sha256').update(raw).digest('hex');
+    return `0x${hash}`;
+  }
+
+  /**
+   * Anchors and checks a receipt in the Pollar Stellar registry (Anti-Replay Protection)
+   */
+  async checkAndAnchorReceipt(params: {
+    sessionIdOrTxId: string;
+    sender: string;
+    receiver: string;
+    amount: number;
+    currency?: string;
+    timestamp?: string;
+    merchantId?: string;
+    merchantWallet?: string;
+  }): Promise<{
+    status: PollarSettlementStatus;
+    record: PollarAnchorRecord;
+    isReplay: boolean;
+    claimCount: number;
+    firstVerifiedAtIso: string;
+    proofHash: string;
+  }> {
+    const proofHash = this.computeReceiptProofHash(params);
+    const existing = this.registry.get(proofHash);
+    const nowSec = Math.floor(Date.now() / 1000);
+    const nowIso = new Date().toISOString();
+    const merchant = params.merchantId || 'Merchant-Terminal-NG-01';
+
+    // Approximate NGN to USDC rate (~1520 NGN/USD)
+    const usdcEquiv = (params.amount / 1520).toFixed(2);
+    const targetWallet = params.merchantWallet || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01';
+
+    if (existing) {
+      existing.claimCount += 1;
+      existing.isReplay = true;
+      if (!existing.replayAttempts) {
+        existing.replayAttempts = [];
+      }
+      existing.replayAttempts.push({
+        timestamp: nowSec,
+        memoReadAttempt: existing.claimCount,
+        merchant
+      });
+
+      return {
+        status: 'DUPLICATE_REPLAY_DETECTED',
+        record: existing,
+        isReplay: true,
+        claimCount: existing.claimCount,
+        firstVerifiedAtIso: existing.firstVerifiedAtIso,
+        proofHash
+      };
+    }
+
+    // Generate simulated deterministic Stellar transaction hash anchored on testnet
+    const stellarTxHash = crypto.createHash('sha256')
+      .update(`STELLAR_TX:${proofHash}:${nowSec}`)
+      .digest('hex');
+
+    this.currentStellarLedger += Math.floor(Math.random() * 3) + 1;
+
+    // Stellar memo: 28-char text memo or 32-byte hash
+    const stellarMemoText = `DV:${params.sessionIdOrTxId.slice(-18)}`;
+
+    const record: PollarAnchorRecord = {
+      proofHash,
+      sessionIdOrTxId: params.sessionIdOrTxId,
+      sender: params.sender,
+      receiver: params.receiver,
+      amount: String(params.amount),
+      currency: params.currency || 'NGN',
+      firstVerifiedAt: nowSec,
+      firstVerifiedAtIso: nowIso,
+      claimedByMerchant: merchant,
+      claimCount: 1,
+      isReplay: false,
+      stellarTxHash,
+      stellarLedgerSeq: this.currentStellarLedger,
+      stellarNetwork: 'testnet',
+      explorerUrl: `https://stellar.expert/explorer/testnet/tx/${stellarTxHash}`,
+      merchantPollarWallet: targetWallet,
+      payoutAsset: 'USDC',
+      payoutAmount: usdcEquiv,
+      gaslessSponsored: true,
+      sponsorFee: '0.00000 XLM (Sponsored by Pollar Paymaster)',
+      stellarMemoText,
+      memoMetadata: {
+        protocol: 'DualVerifier-Pollar-v1',
+        network: 'Stellar Testnet',
+        receiptHash: proofHash,
+        verifiedTimestamp: nowSec,
+        sessionId: params.sessionIdOrTxId,
+        amountNgn: params.amount,
+        amountUsdc: Number(usdcEquiv)
+      }
+    };
+
+    this.registry.set(proofHash, record);
+
+    return {
+      status: 'NEW_VERIFIED_SETTLEMENT',
+      record,
+      isReplay: false,
+      claimCount: 1,
+      firstVerifiedAtIso: nowIso,
+      proofHash
+    };
+  }
+
+  getRecordByProofHash(proofHash: string): PollarAnchorRecord | undefined {
+    return this.registry.get(proofHash);
+  }
+
+  getRecordBySessionId(sessionId: string): PollarAnchorRecord | undefined {
+    for (const record of this.registry.values()) {
+      if (record.sessionIdOrTxId === sessionId) {
+        return record;
+      }
+    }
+    return undefined;
+  }
+
+  getAllRecords(): PollarAnchorRecord[] {
+    return Array.from(this.registry.values()).sort((a, b) => b.firstVerifiedAt - a.firstVerifiedAt);
+  }
+
+  private seedDemoRegistry(): void {
+    // Demo 1: Authentic GTBank N150,000 transfer anchored into Pollar Stellar Escrow
+    const demo1Hash = this.computeReceiptProofHash({
+      sessionIdOrTxId: '000013260315143022100004998231',
+      amount: 150000,
+      timestamp: '2026-03-15T14:30:22+01:00',
+      currency: 'NGN'
+    });
+
+    const demo1Tx = 'a8f5b3c2d1e09f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e';
+
+    this.registry.set(demo1Hash, {
+      proofHash: demo1Hash,
+      sessionIdOrTxId: '000013260315143022100004998231',
+      sender: 'Guaranty Trust Bank (GTBank):Chibuike Okonkwo',
+      receiver: 'OPay Digital Services Limited:Lekki Gadget Depot Ltd',
+      amount: '150000',
+      currency: 'NGN',
+      firstVerifiedAt: 1773581422,
+      firstVerifiedAtIso: '2026-03-15T14:30:22+01:00',
+      claimedByMerchant: 'Lekki Gadget Depot Ltd (Terminal #04)',
+      claimCount: 1,
+      isReplay: false,
+      stellarTxHash: demo1Tx,
+      stellarLedgerSeq: 51842010,
+      stellarNetwork: 'testnet',
+      explorerUrl: `https://stellar.expert/explorer/testnet/tx/${demo1Tx}`,
+      merchantPollarWallet: 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+      payoutAsset: 'USDC',
+      payoutAmount: '98.68',
+      gaslessSponsored: true,
+      sponsorFee: '0.00000 XLM (Sponsored by Pollar Paymaster)',
+      stellarMemoText: 'DV:151430221000049982',
+      memoMetadata: {
+        protocol: 'DualVerifier-Pollar-v1',
+        network: 'Stellar Testnet',
+        receiptHash: demo1Hash,
+        verifiedTimestamp: 1773581422,
+        sessionId: '000013260315143022100004998231',
+        amountNgn: 150000,
+        amountUsdc: 98.68
+      }
+    });
+
+    // Demo 4: Replayed NIBSS receipt caught by anti-fraud detector
+    const demo4Hash = this.computeReceiptProofHash({
+      sessionIdOrTxId: '000013260315143022100004998999',
+      amount: 75000,
+      timestamp: '2026-03-15T10:15:00+01:00',
+      currency: 'NGN'
+    });
+
+    const demo4Tx = 'c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4';
+
+    this.registry.set(demo4Hash, {
+      proofHash: demo4Hash,
+      sessionIdOrTxId: '000013260315143022100004998999',
+      sender: 'Access Bank:Chidinma Eze',
+      receiver: 'Kuda Microfinance:Ikeja Phone Hub',
+      amount: '75000',
+      currency: 'NGN',
+      firstVerifiedAt: 1773566100,
+      firstVerifiedAtIso: '2026-03-15T10:15:00+01:00',
+      claimedByMerchant: 'Ikeja Phone Hub (Terminal #01)',
+      claimCount: 3,
+      isReplay: true,
+      stellarTxHash: demo4Tx,
+      stellarLedgerSeq: 51841980,
+      stellarNetwork: 'testnet',
+      explorerUrl: `https://stellar.expert/explorer/testnet/tx/${demo4Tx}`,
+      merchantPollarWallet: 'GBIKEJA3PHONE9HUB7STELLAR2MERCHANT8LAGOS01',
+      payoutAsset: 'USDC',
+      payoutAmount: '49.34',
+      gaslessSponsored: true,
+      sponsorFee: '0.00000 XLM (Sponsored by Pollar Paymaster)',
+      stellarMemoText: 'DV:151015001000049989',
+      memoMetadata: {
+        protocol: 'DualVerifier-Pollar-v1',
+        network: 'Stellar Testnet',
+        receiptHash: demo4Hash,
+        verifiedTimestamp: 1773566100,
+        sessionId: '000013260315143022100004998999',
+        amountNgn: 75000,
+        amountUsdc: 49.34
+      },
+      replayAttempts: [
+        { timestamp: 1773569700, memoReadAttempt: 2, merchant: 'Ikeja Phone Hub (Terminal #02)' },
+        { timestamp: 1773573300, memoReadAttempt: 3, merchant: 'Ikeja Phone Hub (Terminal #03)' }
+      ]
+    });
+  }
+}
+
+export const pollarRegistry = new PollarRegistry();

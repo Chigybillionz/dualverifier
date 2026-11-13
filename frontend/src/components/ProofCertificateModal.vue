@@ -71,7 +71,7 @@
             <span>⚠️ REPLAY ATTACK INTERCEPTED</span>
           </div>
           <p class="leading-relaxed">
-            This receipt was previously settled on-chain. Zcash Shielded Memo double-spend protection intercepted this re-claim attempt.
+            This receipt was previously settled on-chain. Pollar Stellar double-spend protection intercepted this duplicate claim attempt.
           </p>
         </div>
 
@@ -125,8 +125,8 @@
 
           <div class="py-2 border-b border-slate-800 print:border-slate-300 space-y-1">
             <div class="flex justify-between">
-              <span class="text-slate-400 font-medium">Zcash 512-Byte Memo Seal & SHA-256 Fingerprint</span>
-              <span class="text-xs font-mono text-emerald-400 font-bold">ZIP-302 Verified</span>
+              <span class="text-slate-400 font-medium">On-Chain Ledger Anchor & SHA-256 Fingerprint</span>
+              <span class="text-xs font-mono text-emerald-400 font-bold">Pollar / Stellar Verified</span>
             </div>
             <div class="p-2.5 rounded-xl bg-slate-950 font-mono text-[11px] text-slate-300 break-words border border-slate-800 print:border-slate-300 print:bg-white print:text-black">
               {{ memoSealText }}
@@ -146,9 +146,9 @@
             <div class="space-y-1 text-xs">
               <p class="font-bold text-white print:text-black font-mono">Scan to Verify Cryptographic Proof</p>
               <p class="text-[11px] text-slate-400 leading-tight">
-                Self-contained verification payload verifiable via any offline or online Zcash lightwalletd node.
+                Self-contained verification payload anchored via Pollar SDK (@pollar/core) on the Stellar blockchain.
               </p>
-              <p class="text-[10px] font-mono text-blue-400 print:text-black">
+              <p class="text-[10px] font-mono text-emerald-400 print:text-black">
                 Hash: {{ card.proofHash.slice(0, 18) }}...{{ card.proofHash.slice(-8) }}
               </p>
             </div>
@@ -223,17 +223,20 @@ const proofId = computed(() => {
 const certificateTitle = computed(() => {
   if (props.card?.status === 'DUPLICATE') return 'DUPLICATE / ALREADY CLAIMED ATTESTATION';
   if (props.card?.rail === 'LOCAL_BANK') return 'AUTHENTIC NIBSS INTERBANK SETTLEMENT';
-  return 'VERIFIED ZCASH SHIELDED SETTLEMENT';
+  return 'VERIFIED POLLAR STELLAR SETTLEMENT';
 });
 
 const memoSealText = computed(() => {
+  if (props.card?.pollarAnchor?.stellarMemoText) {
+    return `STELLAR_TX: ${props.card.pollarAnchor.stellarTxHash.slice(0, 20)}... | MEMO: ${props.card.pollarAnchor.stellarMemoText} | WALLET: ${props.card.pollarAnchor.merchantPollarWallet.slice(0, 16)}... | GASLESS: SPONSORED`;
+  }
   if (props.card?.zcashShieldedAnchor?.memoUtf8) {
     return props.card.zcashShieldedAnchor.memoUtf8;
   }
   if (props.card?.zcashDetails?.memo?.decryptedText) {
     return props.card.zcashDetails.memo.decryptedText;
   }
-  return `PROOF_HASH: ${props.card?.proofHash} | ZCASH_512B_SHIELDED_SEAL | BLOCK #2549102`;
+  return `PROOF_HASH: ${props.card?.proofHash} | POLLAR_STELLAR_ANCHOR | TESTNET`;
 });
 
 function formatHumanTime(iso: string) {

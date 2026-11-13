@@ -1,5 +1,5 @@
 import { lookupCbnBank, CBNBankRecord } from '../config/cbnBankCodes.js';
-import { zcashMemoRegistry } from './zcashMemoRegistry.js';
+import { pollarRegistry, PollarAnchorRecord } from './pollarRegistry.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import exifr from 'exifr';
 
@@ -63,7 +63,8 @@ export interface LocalBankVerificationOutput {
       multiCurrency?: {
         ngn: string;
         usd: string;
-        zec: string;
+        usdc: string;
+        zec?: string;
       };
       verified: boolean;
     };
@@ -74,21 +75,24 @@ export interface LocalBankVerificationOutput {
     geminiAiNotes?: string;
     flags: string[];
   };
-  zcashShieldedAnchor: {
+  pollarAnchor: {
     proofHash: string;
-    zcashTxId: string;
-    blockHeight: number;
-    zcashPool: 'IRONWOOD' | 'ORCHARD' | 'SAPLING';
-    zcashPoolDisplay?: string;
-    memoUtf8: string;
-    memoHex: string;
-    memoBytesLength: number;
-    memoJsonMetadata?: any;
+    stellarTxHash: string;
+    stellarLedgerSeq: number;
+    stellarNetwork: 'testnet' | 'public';
+    explorerUrl: string;
+    merchantPollarWallet: string;
+    payoutAsset: string;
+    payoutAmount: string;
+    gaslessSponsored: boolean;
+    sponsorFee: string;
+    stellarMemoText: string;
     claimCount: number;
     firstAnchoredIso: string;
     isReplayAttack: boolean;
-    explorerUrl: string;
+    escrowStatus: 'ESCROW_RELEASED' | 'LOCKED' | 'PENDING';
   };
+  zcashShieldedAnchor?: any;
 }
 
 /**
@@ -514,8 +518,8 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
   const isTamperClean = simulatedTamperScore === undefined || Number(simulatedTamperScore) >= 50;
   const isGenuine = isNibssValid && isTamperClean;
 
-  // 2. Anchor & Check into Zcash 512-Byte Shielded Memo Registry (Anti-Double-Spend Trap)
-  const anchorResult = await zcashMemoRegistry.checkAndLockReceiptHash({
+  // 2. Anchor & Check into Pollar Stellar Registry (Anti-Double-Spend Trap & Gasless Settlement)
+  const anchorResult = await pollarRegistry.checkAndAnchorReceipt({
     sessionIdOrTxId: nibssResult.rawSessionId,
     sender: `${senderBank}:${senderName}`,
     receiver: `${receiverBank}:${receiverAccount}`,
@@ -537,12 +541,12 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
     badgeTitle = 'INVALID SESSION ID';
     badgeColor = 'crimson';
   } else if (anchorResult.status === 'DUPLICATE_REPLAY_DETECTED' || anchorResult.claimCount > 1) {
-    // REPLAY ATTACK INTERCEPTED BY ZCASH SHIELDED MEMO REGISTRY!
+    // REPLAY ATTACK INTERCEPTED BY POLLAR STELLAR REGISTRY!
     status = 'DUPLICATE';
     badgeTitle = `DUPLICATE / ALREADY CLAIMED (ATTEMPT #${anchorResult.claimCount})`;
     badgeColor = 'amber';
     allFlags.unshift(
-      `CRITICAL REPLAY INTERCEPTION: This receipt fingerprint was already recorded in Zcash Shielded Memo on block #${anchorResult.blockHeight} at ${anchorResult.firstVerifiedAtIso}. Double-spending attempt blocked!`
+      `CRITICAL REPLAY INTERCEPTION: Receipt fingerprint already anchored on Stellar ledger #${anchorResult.record.stellarLedgerSeq} at ${anchorResult.firstVerifiedAtIso}. Pollar Escrow locked against double-spending attempt!`
     );
   } else if (!isGenuine) {
     status = 'TAMPERED';
@@ -554,12 +558,11 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
   const receiverBankRecord = lookupCbnBank(receiverBank);
 
   const numAmount = Number(amount) || 0;
-  const usdEquiv = numAmount / 1550.00;
-  const zecEquiv = usdEquiv / 38.50;
+  const usdEquiv = numAmount / 1520.00;
   const multiCurrency = {
     ngn: `₦${numAmount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} NGN`,
     usd: `$${usdEquiv.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
-    zec: `${zecEquiv.toFixed(4)} ZEC`
+    usdc: `${usdEquiv.toFixed(2)} USDC (Stellar)`
   };
 
   return {
@@ -581,7 +584,7 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
         type: 'NIBSS Instant Payment (NIP)',
         identifier: nibssResult.rawSessionId,
         timestamp: nibssResult.timestampSegment.parsedHuman,
-        protocol: 'CBN Central Clearing Gateway + Zcash Ironwood (NU6.3) Shielded Memo Anchor',
+        protocol: 'CBN Clearing Gateway + Pollar Gasless Stellar Escrow (@pollar/core)',
         verified: isNibssValid
       },
       receiver: {
@@ -603,20 +606,22 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
       },
       flags: allFlags
     },
-    zcashShieldedAnchor: {
+    pollarAnchor: {
       proofHash: anchorResult.proofHash,
-      zcashTxId: anchorResult.zcashTxId,
-      blockHeight: anchorResult.blockHeight,
-      zcashPool: anchorResult.record.zcashPool,
-      zcashPoolDisplay: anchorResult.record.zcashPoolDisplay,
-      memoUtf8: anchorResult.memoUtf8,
-      memoHex: anchorResult.memoHex,
-      memoBytesLength: 512,
-      memoJsonMetadata: anchorResult.memoJsonMetadata,
+      stellarTxHash: anchorResult.record.stellarTxHash,
+      stellarLedgerSeq: anchorResult.record.stellarLedgerSeq,
+      stellarNetwork: anchorResult.record.stellarNetwork,
+      explorerUrl: anchorResult.record.explorerUrl,
+      merchantPollarWallet: anchorResult.record.merchantPollarWallet,
+      payoutAsset: anchorResult.record.payoutAsset,
+      payoutAmount: anchorResult.record.payoutAmount,
+      gaslessSponsored: anchorResult.record.gaslessSponsored,
+      sponsorFee: anchorResult.record.sponsorFee,
+      stellarMemoText: anchorResult.record.stellarMemoText,
       claimCount: anchorResult.claimCount,
       firstAnchoredIso: anchorResult.firstVerifiedAtIso,
       isReplayAttack: anchorResult.claimCount > 1,
-      explorerUrl: `https://blockchair.com/zcash/transaction/${anchorResult.zcashTxId}`
+      escrowStatus: anchorResult.claimCount > 1 ? 'LOCKED' : 'ESCROW_RELEASED'
     }
   };
 }

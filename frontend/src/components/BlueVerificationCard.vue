@@ -285,9 +285,73 @@
         </ul>
       </div>
 
-      <!-- RAIL 1 SPECIFIC: ZCASH IRONWOOD 512-BYTE SHIELDED MEMO ANCHOR CARD -->
+      <!-- RAIL 1 SPECIFIC: POLLAR GASLESS STELLAR ESCROW & ANCHOR CARD -->
       <div
-        v-if="card.rail === 'LOCAL_BANK' && card.zcashShieldedAnchor"
+        v-if="card.rail === 'LOCAL_BANK' && card.pollarAnchor"
+        class="p-4 rounded-2xl bg-[#141217] border border-emerald-500/40 text-xs space-y-3 shadow-lg"
+      >
+        <div class="flex items-center justify-between border-b border-[#2d242f] pb-2.5">
+          <div class="flex items-center space-x-2">
+            <span class="text-emerald-400 font-bold font-mono flex items-center gap-1.5">
+              <span>⚡ Pollar Gasless Stellar Escrow & Anchor</span>
+            </span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-mono border border-emerald-800">
+              Stellar Ledger #{{ card.pollarAnchor.stellarLedgerSeq }}
+            </span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <span
+              class="text-[10px] font-mono px-2 py-0.5 rounded-full"
+              :class="card.pollarAnchor.claimCount > 1 ? 'bg-amber-950 text-amber-300 font-bold border border-amber-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'"
+            >
+              {{ card.pollarAnchor.claimCount === 1 ? '✓ Proof Anchored' : `Replay Attempt #${card.pollarAnchor.claimCount}` }}
+            </span>
+          </div>
+        </div>
+
+        <div class="space-y-1.5 font-mono text-[11px]">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-stone-300">
+            <span class="text-stone-500">Merchant Pollar Smart Account:</span>
+            <span class="text-emerald-400 font-bold truncate">{{ card.pollarAnchor.merchantPollarWallet }}</span>
+          </div>
+
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-stone-300">
+            <span class="text-stone-500">Escrow Payout Settlement:</span>
+            <span class="font-bold text-white bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80">
+              ${{ card.pollarAnchor.payoutAmount }} {{ card.pollarAnchor.payoutAsset }}
+              <span class="text-emerald-400 ml-1">({{ card.pollarAnchor.escrowStatus }})</span>
+            </span>
+          </div>
+
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-stone-300">
+            <span class="text-stone-500">Pollar Paymaster Gas Sponsorship:</span>
+            <span class="text-emerald-300 font-bold">{{ card.pollarAnchor.sponsorFee }}</span>
+          </div>
+
+          <div class="text-stone-400 truncate">
+            <span class="text-stone-500">Stellar Transaction Hash: </span>
+            <a
+              :href="card.pollarAnchor.explorerUrl"
+              target="_blank"
+              class="text-emerald-400 hover:text-emerald-300 underline font-bold"
+            >
+              {{ card.pollarAnchor.stellarTxHash }} ↗
+            </a>
+          </div>
+
+          <div class="text-stone-400">
+            <span class="text-stone-500">Stellar Memo (Anchored Proof): </span>
+            <span class="text-stone-200 font-bold bg-[#1e1721] px-1.5 py-0.5 rounded border border-[#2d242f]">
+              {{ card.pollarAnchor.stellarMemoText }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAIL 1 SPECIFIC: ZCASH LEGACY ANCHOR CARD (IF APPLICABLE) -->
+      <div
+        v-if="card.rail === 'LOCAL_BANK' && card.zcashShieldedAnchor && !card.pollarAnchor"
         class="p-4 rounded-2xl bg-slate-900 border border-blue-500/30 text-xs space-y-3"
       >
         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -358,6 +422,59 @@
           <div v-if="card.zcashShieldedAnchor.memoJsonMetadata" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
             <span class="text-slate-500 text-[10px] block mb-1">Decoded Memo JSON Metadata:</span>
             <pre class="text-[10px] text-blue-300 overflow-x-auto">{{ JSON.stringify(card.zcashShieldedAnchor.memoJsonMetadata, null, 2) }}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAIL 2 SPECIFIC: POLLAR STELLAR GASLESS EXPLORER -->
+      <div
+        v-if="card.rail === 'POLLAR_STELLAR'"
+        class="p-4 rounded-2xl bg-[#141217] border border-emerald-500/40 text-xs space-y-3 shadow-lg"
+      >
+        <div class="flex items-center justify-between border-b border-[#2d242f] pb-2.5">
+          <div class="flex items-center space-x-2">
+            <span class="text-emerald-400 font-bold font-mono flex items-center gap-1.5">
+              <span>⚡ Pollar Smart Wallet & Stellar Escrow Explorer</span>
+            </span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-mono border border-emerald-800">
+              Stellar Testnet • 0 XLM User Gas
+            </span>
+          </div>
+
+          <span class="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-800">
+            {{ card.settlement?.status === 'LOCKED' ? 'ESCROW LOCKED' : 'ESCROW SETTLED' }}
+          </span>
+        </div>
+
+        <div class="space-y-2 font-mono text-[11px]">
+          <div class="p-3 rounded-xl bg-black/40 border border-[#2d242f] space-y-1.5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-stone-300">
+              <span class="text-stone-500">Merchant Pollar Smart Account:</span>
+              <span class="text-emerald-400 font-bold truncate">{{ card.pollarSmartWallet?.address }}</span>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-stone-300">
+              <span class="text-stone-500">Sponsored Fee (Paymaster):</span>
+              <span class="text-emerald-300 font-bold">{{ card.pollarSmartWallet?.sponsoredBy }}</span>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-stone-300">
+              <span class="text-stone-500">USDC Payout Amount:</span>
+              <span class="text-white font-bold">{{ card.settlement?.amount }} USDC ({{ card.settlement?.ngnEquivalent }})</span>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-stone-300">
+              <span class="text-stone-500">Stellar Memo (Anchored Receipt):</span>
+              <span class="text-stone-200 font-bold">{{ card.settlement?.memoText }}</span>
+            </div>
+          </div>
+
+          <div class="text-stone-400 truncate">
+            <span class="text-stone-500">Stellar Transaction Hash: </span>
+            <a
+              :href="card.explorerUrl"
+              target="_blank"
+              class="text-emerald-400 hover:text-emerald-300 underline font-bold"
+            >
+              {{ card.txHash }} ↗
+            </a>
           </div>
         </div>
       </div>

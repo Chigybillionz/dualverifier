@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { verifyAndAnchorLocalBankReceipt, extractReceiptFromImage } from './services/nibssVerifier.js';
+import { pollarVerifier } from './services/pollarVerifier.js';
+import { pollarRegistry } from './services/pollarRegistry.js';
 import { zcashVerifier } from './services/zcashVerifier.js';
 import { zcashMemoRegistry } from './services/zcashMemoRegistry.js';
 import { getAllCbnBanks } from './config/cbnBankCodes.js';
@@ -26,9 +28,9 @@ app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'online',
-    protocol: 'DualVerifier Privacy-Preserving Engine v2.0',
+    protocol: 'DualVerifier Pollar Gasless Engine v3.0',
     track: 'Intelligence: AI & Web3 Without Borders (BlockchainUNN Hackathon)',
-    zcashNetwork: 'Zcash Mainnet / Lightwalletd Proxy',
+    web3Rail: 'Pollar SDK (@pollar/core) + Stellar Testnet Paymaster',
     geminiConfigured: !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY'),
     timestamp: new Date().toISOString()
   });
@@ -109,13 +111,35 @@ app.post('/api/verify/local', upload.single('receipt'), async (req, res) => {
   }
 });
 
-// 2. Rail 2: Zcash On-Chain Verifier (Shielded Orchard/Sapling & Transparent Explorer)
+// 2. Rail 2: Pollar Stellar Gasless Verifier & Escrow
+app.post('/api/verify/pollar', async (req, res) => {
+  try {
+    const { txid, walletAddress, sessionId } = req.body;
+    const blueCard = await pollarVerifier.verifyPollarTransaction({
+      txHash: txid,
+      walletAddress,
+      sessionId
+    });
+    res.status(200).json({ success: true, blueCard });
+  } catch (err: any) {
+    console.error('[API /verify/pollar] Error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Pollar verification error' });
+  }
+});
+
+// 2b. Rail 2 Legacy Fallback (Zcash)
 app.post('/api/verify/zcash', async (req, res) => {
   try {
-    const { txid, unifiedAddress, viewingKey } = req.body;
+    const { txid, unifiedAddress, viewingKey, walletAddress, sessionId } = req.body;
 
-    if (!txid) {
-      res.status(400).json({ success: false, error: 'Zcash Transaction ID (txid) is required' });
+    // If txid looks like a stellar hash or pollar verification is called:
+    if (walletAddress || (txid && !txid.startsWith('u1') && !viewingKey)) {
+      const blueCard = await pollarVerifier.verifyPollarTransaction({
+        txHash: txid,
+        walletAddress,
+        sessionId
+      });
+      res.status(200).json({ success: true, blueCard });
       return;
     }
 
@@ -254,28 +278,29 @@ Be strict. If in doubt and the document does not clearly show a completed Nigeri
 
 // Session Audit Ledger / Verified Attestations
 app.get('/api/history', (_req, res) => {
-  const records = zcashMemoRegistry.getAllRecords();
-  const history = records.map(r => ({
+  const pollarRecords = pollarRegistry.getAllRecords();
+  const history = pollarRecords.map(r => ({
     id: r.proofHash,
     timestamp: r.firstVerifiedAtIso,
-    rail: r.sessionIdOrTxId.startsWith('0x') || r.sessionIdOrTxId.length === 64 ? 'ZCASH' : 'LOCAL_BANK',
+    rail: 'POLLAR_STELLAR',
     sender: r.sender,
     receiver: r.receiver,
-    amountFormatted: `${r.amount} ${r.currency}`,
+    amountFormatted: `₦${Number(r.amount).toLocaleString()} (${r.payoutAmount} USDC)`,
     amount: r.amount,
     currency: r.currency,
     memoHash: r.proofHash,
-    zcashTxId: r.zcashAnchorTxId,
-    zcashBlockHeight: r.zcashBlockHeight,
-    zcashPool: r.zcashPool,
-    zcashPoolDisplay: r.zcashPoolDisplay,
+    stellarTxHash: r.stellarTxHash,
+    stellarLedgerSeq: r.stellarLedgerSeq,
+    merchantPollarWallet: r.merchantPollarWallet,
+    payoutAsset: r.payoutAsset,
+    payoutAmount: r.payoutAmount,
+    gaslessSponsored: r.gaslessSponsored,
     claimCount: r.claimCount,
     isReplay: r.isReplay,
     status: r.claimCount > 1 ? 'DUPLICATE' : 'VERIFIED',
     badgeTitle: r.claimCount > 1 ? `DUPLICATE (CLAIM #${r.claimCount})` : 'VERIFIED AUTHENTIC',
-    memoUtf8: r.memoUtf8,
-    memoHex: r.memoHex,
-    memoJsonMetadata: r.memoJsonMetadata
+    stellarMemoText: r.stellarMemoText,
+    explorerUrl: r.explorerUrl
   }));
 
   res.json({ success: true, history });
@@ -291,25 +316,23 @@ app.get('/api/cbn/banks', (_req, res) => {
   res.json({ success: true, banks: getAllCbnBanks() });
 });
 
-// Zcash 512-Byte Memo Registry Records
-app.get('/api/zcash/memos', (_req, res) => {
-  res.json({ success: true, records: zcashMemoRegistry.getAllRecords() });
+// Pollar Stellar Escrow Records
+app.get('/api/pollar/escrows', (_req, res) => {
+  res.json({ success: true, records: pollarRegistry.getAllRecords() });
 });
 
-// Reset Proof for Demo Replay
-app.post('/api/zcash/reset/:proofHash', (req, res) => {
-  const { proofHash } = req.params;
-  zcashMemoRegistry.resetProof(proofHash);
-  res.json({ success: true, message: 'Zcash memo proof reset' });
+// Legacy Zcash Memos Endpoint
+app.get('/api/zcash/memos', (_req, res) => {
+  res.json({ success: true, records: zcashMemoRegistry.getAllRecords() });
 });
 
 app.listen(PORT, () => {
   console.log(`
 ===========================================================
-  🛡️ DualVerifier Zcash & Local Bank Engine Active
+  ⚡ DualVerifier Pollar Gasless & NIBSS Engine Active
   📍 Port: http://localhost:${PORT}
-  🏦 Rail 1: Local Bank (NIBSS + Zcash 512B Memo): POST /api/verify/local
-  🛡️ Rail 2: Zcash Shielded Explorer (uview/u1):   POST /api/verify/zcash
+  🏦 Rail 1: Local Bank (NIBSS + Pollar Gasless Escrow): POST /api/verify/local
+  ⚡ Rail 2: Pollar Stellar Explorer (0 XLM Gas):        POST /api/verify/pollar
   📝 Presets: GET /api/presets
 ===========================================================
   `);

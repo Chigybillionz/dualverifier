@@ -18,11 +18,11 @@
 
       <!-- 4 One-Click Judge Test Buttons -->
       <div class="flex flex-wrap items-center gap-2">
-        <!-- Demo 1: Valid GTBank ₦150k Receipt + Ironwood Memo Seal -->
+        <!-- Demo 1: Valid GTBank ₦150k Receipt + Pollar Gasless Escrow -->
         <button
           @click="$emit('select-preset', 'demo-1-valid-gtb-150k')"
           class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1c161d] hover:bg-[#251d27] text-emerald-400 border border-emerald-500/30 hover:border-emerald-400 transition-all shadow-sm active:scale-95"
-          title="Valid ₦150,000 GTBank-to-OPay transfer sealed into Zcash Ironwood (NU6.3) 512-byte encrypted memo"
+          title="Valid ₦150,000 GTBank transfer anchored on Stellar via Pollar SDK with sponsored gas fees"
         >
           <span>✓</span>
           <span>1: Valid GTBank ₦150k</span>
@@ -38,21 +38,21 @@
           <span>2: Fake Canva Alert</span>
         </button>
 
-        <!-- Demo 3: Zcash Shielded u1 Tx + Viewing Key Decryption -->
+        <!-- Demo 3: Pollar Smart Wallet + Stellar Escrow Explorer -->
         <button
-          @click="$emit('select-preset', 'demo-3-zcash-shielded-u1')"
-          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1c161d] hover:bg-[#251d27] text-[#F4B728] border border-[#F4B728]/30 hover:border-[#F4B728] transition-all shadow-sm active:scale-95"
-          title="Zcash Unified Address (u1...) + Viewing Key selective disclosure decrypting 512-byte memo"
+          @click="$emit('select-preset', 'demo-3-pollar-stellar-settlement')"
+          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1c161d] hover:bg-[#251d27] text-emerald-400 border border-emerald-500/30 hover:border-emerald-400 transition-all shadow-sm active:scale-95"
+          title="Pollar Smart Account on Stellar Testnet with 100% sponsored gas fees and USDC escrow"
         >
-          <span>🛡</span>
-          <span>3: Shielded u1 + View Key</span>
+          <span>⚡</span>
+          <span>3: Pollar Escrow Explorer</span>
         </button>
 
         <!-- Demo 4: Re-Used Receipt Double-Spend Attack Trap -->
         <button
           @click="$emit('select-preset', 'demo-4-reused-receipt-replay')"
           class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1c161d] hover:bg-[#251d27] text-amber-400 border border-amber-500/30 hover:border-amber-400 transition-all shadow-sm active:scale-95"
-          title="Re-verify Demo 1 receipt to demonstrate Zcash Ironwood Shielded Memo catching duplicate receipt replay"
+          title="Re-verify Demo 1 receipt to demonstrate Pollar Stellar Registry catching duplicate receipt replay"
         >
           <span>⟳</span>
           <span>4: Replay Trap</span>

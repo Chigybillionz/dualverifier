@@ -4,13 +4,13 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
         <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <span>Recent Forensic Attestations & Zcash Memo Anchors</span>
-          <span class="text-xs px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-300 font-mono border border-blue-800">
+          <span>Recent Forensic Attestations & Pollar Stellar Anchors</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-mono border border-emerald-800">
             Live Audit Ledger
           </span>
         </h3>
         <p class="text-xs text-slate-400">
-          Permanent session history of verified NIBSS transfers and Zcash shielded memos with double-spend protection.
+          Permanent session history of verified NIBSS transfers and Pollar Stellar gasless escrows with double-spend protection.
         </p>
       </div>
 
@@ -30,7 +30,7 @@
               <th scope="col" class="py-3 px-4">Rail</th>
               <th scope="col" class="py-3 px-4">Sender ➔ Receiver</th>
               <th scope="col" class="py-3 px-4">Amount</th>
-              <th scope="col" class="py-3 px-4">Zcash 512B Memo Hash</th>
+              <th scope="col" class="py-3 px-4">Ledger Proof Hash</th>
               <th scope="col" class="py-3 px-4">Verdict Badge</th>
               <th scope="col" class="py-3 px-4 text-right">Action</th>
             </tr>
@@ -51,9 +51,9 @@
               <td class="py-3 px-4 whitespace-nowrap">
                 <span
                   class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold"
-                  :class="item.rail === 'LOCAL_BANK' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-blue-950 text-blue-300 border border-blue-800'"
+                  :class="item.rail === 'LOCAL_BANK' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'"
                 >
-                  {{ item.rail === 'LOCAL_BANK' ? 'Web2 NIBSS' : 'Web3 Zcash' }}
+                  {{ item.rail === 'LOCAL_BANK' ? 'Web2 NIBSS' : 'Pollar Stellar' }}
                 </span>
               </td>
 
@@ -116,7 +116,7 @@
 export interface HistoryAuditItem {
   id: string;
   timestamp: string;
-  rail: 'LOCAL_BANK' | 'ZCASH';
+  rail: 'LOCAL_BANK' | 'POLLAR_STELLAR' | 'ZCASH';
   sender: string;
   receiver: string;
   amount: string;

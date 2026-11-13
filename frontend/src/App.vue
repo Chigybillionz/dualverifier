@@ -14,9 +14,9 @@
       <!-- Hero Banner & Segmented Mode Switcher (z.cash aesthetic) -->
       <div id="verifier-section" class="flex flex-col items-center text-center space-y-5 pb-8 border-b border-[#2d242f]">
         <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-[#191419] border border-[#2d242f] text-xs font-mono">
-          <span class="w-2 h-2 rounded-full bg-[#F4B728] animate-pulse"></span>
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span class="text-stone-300">Dual-Rail Settlement Engine:</span>
-          <span class="text-[#F4B728] font-bold">NIBSS + Zcash Shielded Memos</span>
+          <span class="text-emerald-400 font-bold">NIBSS + Pollar Gasless Stellar Escrow</span>
         </div>
 
         <h1 class="text-3xl sm:text-5xl lg:text-6xl font-serif text-white tracking-tight font-normal">
@@ -24,10 +24,10 @@
         </h1>
 
         <p class="text-sm sm:text-base text-stone-400 max-w-2xl leading-relaxed">
-          The DualVerifier network unifies Web2 NIBSS banking settlement mathematics with Web3 Zcash Ironwood (NU6.3) Encrypted Memos and Selective Disclosure.
+          The DualVerifier network unifies Web2 NIBSS banking settlement mathematics with Web3 Pollar Smart Accounts, Stellar Escrow Settlement, and 100% Sponsored Gasless Transactions.
         </p>
 
-        <!-- Segmented Tab Switcher (Directly inspired by z.cash) -->
+        <!-- Segmented Tab Switcher -->
         <div class="pt-2">
           <ModeToggle v-model:mode="activeRail" />
         </div>
@@ -38,20 +38,20 @@
         <!-- LEFT COLUMN: Verifier Input Command Center (5 cols) -->
         <div class="lg:col-span-5 space-y-6">
           <div class="bg-[#191419] border border-[#2d242f] rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-            <!-- Accent Top Line in Zcash Gold -->
+            <!-- Accent Top Line in Emerald / Gold -->
             <div
               class="absolute top-0 left-0 right-0 h-1 transition-all duration-300"
-              :class="activeRail === 'LOCAL_BANK' ? 'bg-gradient-to-r from-emerald-500 to-[#F4B728]' : 'bg-gradient-to-r from-[#F4B728] via-amber-400 to-blue-500'"
+              :class="activeRail === 'LOCAL_BANK' ? 'bg-gradient-to-r from-emerald-500 to-[#F4B728]' : 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500'"
             ></div>
 
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center space-x-2">
                 <span
                   class="w-2.5 h-2.5 rounded-full animate-pulse"
-                  :class="activeRail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-[#F4B728]'"
+                  :class="activeRail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-emerald-400'"
                 ></span>
                 <h3 class="text-sm font-bold uppercase tracking-wider font-mono text-white">
-                  {{ activeRail === 'LOCAL_BANK' ? 'Rail 1: NIBSS Bank Receipt Verifier' : 'Rail 2: Zcash On-Chain Verifier' }}
+                  {{ activeRail === 'LOCAL_BANK' ? 'Rail 1: NIBSS Bank Receipt Verifier' : 'Rail 2: Pollar Stellar Gasless Explorer' }}
                 </h3>
               </div>
 
@@ -79,22 +79,22 @@
             />
 
             <!-- Rail 2 Component -->
-            <ZcashChainVerifier
+            <PollarChainVerifier
               v-else
-              ref="zcashVerifierRef"
+              ref="pollarVerifierRef"
               :isLoading="isLoading"
-              @verify="handleVerifyZcash"
+              @verify="handleVerifyPollar"
             />
           </div>
 
-          <!-- Privacy Architecture Explainer Card -->
+          <!-- Pollar Gasless Protocol Explainer Card -->
           <div id="privacy-protocol" class="p-4 rounded-xl bg-[#161116] border border-[#2d242f] text-xs space-y-2.5">
             <div class="font-bold text-stone-200 flex items-center justify-between font-mono">
-              <span class="text-[#F4B728]">ZIP-302 Encrypted Memo Security</span>
-              <span class="text-[10px] px-2 py-0.5 rounded bg-[#1f1720] text-stone-400">Ironwood Pool</span>
+              <span class="text-emerald-400">Pollar SDK Gasless Escrow</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-[#1f1720] text-emerald-300">Stellar Testnet</span>
             </div>
             <p class="text-stone-400 leading-relaxed text-[11px]">
-              Every verified Nigerian banking transfer emits a SHA-256 fingerprint anchored inside a <strong class="text-stone-200">512-Byte Encrypted Zcash Memo</strong>. This mathematically prevents double-spending across merchant locations without disclosing sender/receiver banking identities to public observers.
+              Every verified Nigerian banking transfer anchors a SHA-256 fingerprint onto Stellar via <strong class="text-stone-200">Pollar (@pollar/core)</strong>. Pollar's paymaster sponsors 100% of user network fees, allowing merchants to settle in USDC with zero XLM and zero seed phrases.
             </p>
           </div>
         </div>
@@ -121,7 +121,7 @@
             <div class="max-w-sm space-y-1">
               <h3 class="text-base font-bold text-white font-sans">Forensic Verifier Standby</h3>
               <p class="text-xs text-stone-400 leading-relaxed">
-                Upload a Nigerian bank receipt, input a 30-digit NIBSS session ID, or query a Zcash Shielded transaction with a viewing key to render the Blue Tick Certificate.
+                Upload a Nigerian bank receipt, input a 30-digit NIBSS session ID, or query a Pollar Stellar Escrow transaction to render the Blue Tick Certificate.
               </p>
             </div>
             <div class="pt-2">
@@ -255,6 +255,7 @@ import NavbarLogo from './components/NavbarLogo.vue';
 import DemoPresetBar from './components/DemoPresetBar.vue';
 import ModeToggle from './components/ModeToggle.vue';
 import LocalBankVerifier from './components/LocalBankVerifier.vue';
+import PollarChainVerifier from './components/PollarChainVerifier.vue';
 import ZcashChainVerifier from './components/ZcashChainVerifier.vue';
 import BlueVerificationCard from './components/BlueVerificationCard.vue';
 import ProofCertificateModal from './components/ProofCertificateModal.vue';
@@ -263,7 +264,7 @@ import ReceiptVisualModal from './components/ReceiptVisualModal.vue';
 import { apiUrl } from './utils/api';
 import { MOCK_DEMO_PRESETS } from './data/mockDemoPresets';
 
-const activeRail = ref<'LOCAL_BANK' | 'ZCASH'>('LOCAL_BANK');
+const activeRail = ref<'LOCAL_BANK' | 'POLLAR_STELLAR' | 'ZCASH'>('LOCAL_BANK');
 const isLoading = ref(false);
 const isLedgerOpen = ref(false);
 const isReceiptModalOpen = ref(false);
@@ -275,6 +276,7 @@ const shieldedMemos = ref<any[]>([]);
 const currentPresetVisual = ref<any>(null);
 
 const localVerifierRef = ref<any>(null);
+const pollarVerifierRef = ref<any>(null);
 const zcashVerifierRef = ref<any>(null);
 
 let demoPresets: any[] = [...MOCK_DEMO_PRESETS];
@@ -550,6 +552,30 @@ async function handleVerifyLocal(payload: any) {
   }
 }
 
+async function handleVerifyPollar(payload: any) {
+  isLoading.value = true;
+  try {
+    const res = await fetch(apiUrl('/api/verify/pollar'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (data.success && data.blueCard) {
+      activeBlueCard.value = data.blueCard;
+      appendToAuditHistory(data.blueCard);
+      if (data.blueCard.status === 'VERIFIED') fireConfetti();
+    } else {
+      alert(data.error || 'Pollar verification error');
+    }
+  } catch (err: any) {
+    alert(err.message || 'Connection error');
+  } finally {
+    isLoading.value = false;
+  }
+}
+
 async function handleVerifyZcash(payload: any) {
   isLoading.value = true;
   try {
@@ -584,6 +610,9 @@ function handleSelectPreset(presetId: string) {
         mode: 'json',
         data: p.payload
       });
+    } else if (p.rail === 'POLLAR_STELLAR') {
+      activeRail.value = 'POLLAR_STELLAR';
+      handleVerifyPollar(p.payload);
     } else {
       activeRail.value = 'ZCASH';
       handleVerifyZcash(p.payload);
@@ -627,12 +656,12 @@ function handleSelectPreset(presetId: string) {
         flaggedSoftware: 'CANVA / FAKE ALERT APK GENERATOR'
       }
     });
-  } else if (presetId === 'demo-3-zcash-shielded-u1' || presetId === 'preset-zcash-shielded-disclosure') {
-    activeRail.value = 'ZCASH';
-    handleVerifyZcash({
-      txid: '0xf9b8c2d1e0a987654321fedcba0987654321fedcba0987654321fedcba098765',
-      unifiedAddress: 'u1z0987654321abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef0123456789',
-      viewingKey: 'uview1q8h0e8d7s6a5z4x3c2v1b0n9m8l7k6j5h4g3f2d1s0a9z8y7x6w5v4u3t2r1'
+  } else if (presetId === 'demo-3-pollar-stellar-settlement' || presetId === 'demo-3-zcash-shielded-u1') {
+    activeRail.value = 'POLLAR_STELLAR';
+    handleVerifyPollar({
+      txid: 'a8f5b3c2d1e09f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e',
+      walletAddress: 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+      sessionId: '000013260315143022100004998231'
     });
   } else if (presetId === 'demo-4-reused-receipt-replay') {
     handleTriggerReplay();

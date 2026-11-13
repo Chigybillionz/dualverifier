@@ -14,12 +14,12 @@
               <span class="text-xl font-bold tracking-tight text-white font-sans">
                 Dual<span class="text-[#F4B728]">Verifier</span>
               </span>
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#F4B728]/15 text-[#F4B728] border border-[#F4B728]/30">
-                ZCASH NU6.3
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                POLLAR STELLAR
               </span>
             </div>
             <p class="text-[11px] text-stone-400 hidden sm:block tracking-wide">
-              Privacy-Preserving Dual-Rail Forensic Explorer
+              Dual-Rail Forensic & Gasless Payment Explorer
             </p>
           </div>
         </a>
@@ -29,8 +29,8 @@
       <div class="flex items-center space-x-3">
         <!-- Live Node Status Indicator -->
         <div class="hidden xl:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-[#191419] border border-[#2d242f] text-[11px] font-mono text-stone-300">
-          <span class="w-2 h-2 rounded-full bg-[#F4B728] animate-pulse"></span>
-          <span>ORCHARD SHIELDED • LIVE</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>POLLAR STELLAR • GASLESS LIVE</span>
         </div>
 
         <!-- Audit Ledger Drawer Button -->

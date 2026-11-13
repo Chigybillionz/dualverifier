@@ -175,10 +175,13 @@ const NOT_RECEIPT_SIGNALS: string[] = [
   'account statement',
 ];
 
-/** Blockchain / Zcash keywords */
+/** Blockchain / Web3 keywords */
 const BLOCKCHAIN_KEYWORDS: string[] = [
+  'stellar',
+  'pollar',
   'zcash',
   'zec',
+  'usdc',
   'txid',
   'transaction hash',
   'tx hash',
