@@ -20,40 +20,22 @@
     />
 
     <!-- 3. Main Workspace Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pb-12 space-y-6">
       
-      <!-- Clean Hero & Step Workflow Header (Norman's 7 Stages: Clear Goals & Execution Steps) -->
-      <div id="verifier-section" class="flex flex-col items-center text-center space-y-3 pb-3 sm:pb-4 border-b border-slate-800/80">
-        
-        <!-- Live System Badges -->
-        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-medium">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="text-slate-300">NIBSS Banking Engine</span>
-          <span class="text-slate-600">•</span>
-          <span class="text-blue-400 font-mono">Pollar Stellar Escrow (0 Gas)</span>
-        </div>
-
-        <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-          Instant Payment Verification
-        </h1>
-
-        <p class="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
-          Verify Nigerian bank receipts in seconds against fake-alert fraud, and automatically release trustless, gasless USDC escrows powered by Pollar on Stellar.
-        </p>
-
-        <!-- 3-Step Guided Workflow Pills (Gulf of Execution: User instantly grasps the flow) -->
-        <div class="hidden sm:flex items-center justify-center space-x-2 pt-1 text-xs font-mono">
-          <div class="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+      <!-- 3-Step Guided Workflow Pipeline (Horizontally scrollable on mobile without overflow) -->
+      <div id="verifier-section" class="py-2 border-b border-white/10">
+        <div class="flex items-center justify-start md:justify-center gap-3 overflow-x-auto no-scrollbar px-4 py-3 text-xs font-mono select-none">
+          <div class="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 shrink-0">
             <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-400 text-[10px] flex items-center justify-center font-bold">1</span>
             <span>Provide Receipt / Ref ID</span>
           </div>
-          <span class="text-slate-600">➔</span>
-          <div class="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+          <span class="text-slate-600 shrink-0">➔</span>
+          <div class="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 shrink-0">
             <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-400 text-[10px] flex items-center justify-center font-bold">2</span>
             <span>AI Forensics & NIBSS Match</span>
           </div>
-          <span class="text-slate-600">➔</span>
-          <div class="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-emerald-400 font-bold">
+          <span class="text-slate-600 shrink-0">➔</span>
+          <div class="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-white/5 border border-emerald-500/40 text-emerald-400 font-bold shrink-0">
             <span class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] flex items-center justify-center font-bold">3</span>
             <span>Gasless USDC Escrow Payout</span>
           </div>
@@ -61,11 +43,11 @@
       </div>
 
       <!-- Main Dual-Column Workspace (Gestalt: Proximity & Common Region) -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         <!-- LEFT COLUMN: Verifier Input Command Center (5 cols) -->
         <div class="lg:col-span-5 space-y-4">
-          <div class="bg-[#0E1424] border border-slate-800/90 rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden">
+          <div class="bg-[#0F1624] border border-white/10 rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden">
             <!-- Accent Top Line in Emerald / Blue -->
             <div
               class="absolute top-0 left-0 right-0 h-1 transition-all duration-300"
@@ -117,7 +99,7 @@
           </div>
 
           <!-- Pollar Gasless Protocol Explainer Card -->
-          <div id="privacy-protocol" class="p-4 rounded-2xl bg-[#0E1424]/60 border border-slate-800 text-xs space-y-2">
+          <div id="privacy-protocol" class="p-4 rounded-2xl bg-[#0F1624] border border-white/10 text-xs space-y-2">
             <div class="font-bold text-slate-200 flex items-center justify-between font-mono">
               <span class="text-blue-400 flex items-center gap-1.5">
                 <span>🛡️ Pollar Smart Escrow</span>
@@ -144,7 +126,7 @@
           <!-- Empty State / Standby Screen (Nielsen #1: Visibility of System Status) -->
           <div
             v-else
-            class="rounded-3xl border border-slate-800/90 bg-[#0E1424] p-6 sm:p-12 text-center flex flex-col items-center justify-center space-y-4 shadow-xl"
+            class="rounded-3xl border border-white/10 bg-[#0F1624] p-6 sm:p-12 text-center flex flex-col items-center justify-center space-y-4 shadow-xl"
           >
             <div class="w-14 h-14 rounded-3xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-inner">
               <svg class="w-7 h-7 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">

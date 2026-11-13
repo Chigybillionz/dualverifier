@@ -5,17 +5,21 @@
 @tailwind utilities;
 
 @layer base {
+  *, ::before, ::after {
+    box-sizing: border-box;
+  }
+
   :root {
     --zcash-gold: #F4B728;
     --zcash-gold-glow: rgba(244, 183, 40, 0.25);
-    --bg-obsidian: #120e12;
-    --bg-card: #191419;
-    --bg-card-elevated: #211b22;
-    --border-subtle: #2d242f;
+    --bg-obsidian: #070B14;
+    --bg-card: #0F1624;
+    --bg-card-elevated: #161F32;
+    --border-subtle: rgba(255, 255, 255, 0.1);
   }
 
   body {
-    background-color: #120e12;
+    background-color: #070B14;
     color: #f3f0f4;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     letter-spacing: -0.01em;
@@ -101,6 +105,16 @@
 }
 
 /* Custom scrollbars */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -136,5 +150,15 @@
     border: 2px solid #F4B728 !important;
     background: #ffffff !important;
     color: #000000 !important;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

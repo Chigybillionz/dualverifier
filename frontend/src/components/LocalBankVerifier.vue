@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4 sm:space-y-5">
     <!-- 1. Mode Selector: Upload Receipt vs Direct ID -->
-    <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 sm:pb-3 gap-2">
+    <div class="flex flex-wrap items-center justify-between border-b border-white/10 pb-2.5 sm:pb-3 gap-2">
       <div class="inline-flex rounded-xl bg-slate-900 p-0.5 sm:p-1 border border-slate-800 shadow-sm">
         <button
           @click="inputMode = 'upload'"
@@ -163,7 +163,7 @@
         </div>
 
         <!-- Clean Extracted Overview (Gestalt Proximity & Direct Manipulation) -->
-        <div class="grid grid-cols-2 gap-3 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/50 transition-all">
             <div class="flex items-center justify-between">
               <span class="text-[10px] text-slate-500 block uppercase font-mono">Amount (₦)</span>
@@ -188,7 +188,7 @@
             <input
               v-model="extractedData.sessionId"
               type="text"
-              class="bg-transparent text-xs font-mono font-bold text-emerald-400 w-full outline-none mt-1 truncate focus:text-white"
+              class="bg-transparent text-xs font-mono font-bold text-emerald-400 w-full outline-none mt-1 break-all focus:text-white"
               placeholder="Session ID (30 digits)"
             />
           </div>
@@ -298,7 +298,7 @@
         (inputMode === 'session' && cleanSessionId.length < 10)
       "
       type="button"
-      class="w-full py-3.5 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-sans active:scale-[0.99]"
+      class="w-full py-3.5 rounded-xl font-semibold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-sans active:scale-[0.99]"
       :class="[
         (inputMode === 'upload' && classification && !classification.isPaymentReceipt)
           ? 'bg-rose-950/60 border border-rose-800/60 text-rose-400'
