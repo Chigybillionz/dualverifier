@@ -1,36 +1,20 @@
 <template>
   <div
-    class="blue-card-print relative rounded-2xl overflow-hidden transition-all duration-500 shadow-2xl border backdrop-blur-xl"
+    class="blue-card-print relative rounded-2xl overflow-hidden transition-all duration-300 shadow-xl border backdrop-blur-xl"
     :class="[
       card.status === 'VERIFIED'
-        ? card.rail === 'LOCAL_BANK'
-          ? 'bg-[#191419] border-emerald-500/50 shadow-emerald-500/10'
-          : 'bg-[#191419] border-[#F4B728]/50 shadow-[#F4B728]/10'
+        ? 'bg-[#0B0F19] border-emerald-500/40 shadow-emerald-500/10'
         : card.status === 'DUPLICATE'
-        ? 'bg-[#191419] border-amber-500/60 shadow-amber-500/20'
-        : 'bg-[#191419] border-rose-500/60 shadow-rose-500/20'
+        ? 'bg-[#0B0F19] border-amber-500/50 shadow-amber-500/10'
+        : 'bg-[#0B0F19] border-rose-500/50 shadow-rose-500/10'
     ]"
   >
-    <!-- Background glowing ambient halo -->
+    <!-- 1. VERDICT HERO BANNER (HCI Gulf of Evaluation: Instant Status Perception) -->
     <div
-      class="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl pointer-events-none opacity-20 -mr-20 -mt-20"
+      class="px-6 py-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       :class="[
         card.status === 'VERIFIED'
-          ? card.rail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-[#F4B728]'
-          : card.status === 'DUPLICATE'
-          ? 'bg-amber-400'
-          : 'bg-rose-500'
-      ]"
-    ></div>
-
-    <!-- 1. VERIFICATION STATUS HEADER -->
-    <div
-      class="px-6 py-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-      :class="[
-        card.status === 'VERIFIED'
-          ? card.rail === 'LOCAL_BANK'
-            ? 'bg-emerald-950/40 border-emerald-500/30'
-            : 'bg-[#251d18] border-[#F4B728]/30'
+          ? 'bg-emerald-950/40 border-emerald-500/30'
           : card.status === 'DUPLICATE'
           ? 'bg-amber-950/40 border-amber-500/30'
           : 'bg-rose-950/40 border-rose-500/30'
@@ -42,12 +26,10 @@
           class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
           :class="[
             card.status === 'VERIFIED'
-              ? card.rail === 'LOCAL_BANK'
-                ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/40'
-                : 'bg-[#F4B728] text-black shadow-[#F4B728]/40'
+              ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/30'
               : card.status === 'DUPLICATE'
-              ? 'bg-amber-500 text-slate-950 shadow-amber-500/40 animate-pulse'
-              : 'bg-rose-500 text-white shadow-rose-500/40'
+              ? 'bg-amber-500 text-slate-950 shadow-amber-500/30 animate-pulse'
+              : 'bg-rose-500 text-white shadow-rose-500/30'
           ]"
         >
           <!-- Verified Shield -->
@@ -70,525 +52,205 @@
               class="text-xs font-mono font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full"
               :class="[
                 card.status === 'VERIFIED'
-                  ? card.rail === 'LOCAL_BANK'
-                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                    : 'bg-[#F4B728]/15 text-[#F4B728] border border-[#F4B728]/40'
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
                   : card.status === 'DUPLICATE'
                   ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                  : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                  : 'bg-rose-950 text-rose-300 border border-rose-800'
               ]"
             >
-              {{ card.rail === 'LOCAL_BANK' ? 'Rail 1: NIBSS Settlement + Zcash Ironwood Memo' : 'Rail 2: Zcash Ironwood (NU6.3) Shielded Explorer' }}
+              {{ card.rail === 'LOCAL_BANK' ? 'NIBSS Bank Rail + Pollar Escrow' : 'Pollar Stellar Rail' }}
             </span>
-            <span class="text-xs text-stone-400 font-mono">{{ formatTimestamp(card.timestamp) }}</span>
+            <span class="text-xs text-slate-400 font-mono">{{ formatTimestamp(card.timestamp) }}</span>
           </div>
 
           <h2
-            class="text-lg sm:text-xl font-extrabold tracking-tight mt-1"
+            class="text-lg sm:text-xl font-bold tracking-tight mt-0.5"
             :class="[
               card.status === 'VERIFIED'
-                ? card.rail === 'LOCAL_BANK' ? 'text-emerald-300' : 'text-[#F4B728]'
+                ? 'text-emerald-300'
                 : card.status === 'DUPLICATE'
                 ? 'text-amber-300'
                 : 'text-rose-400'
             ]"
           >
-            {{ card.badgeTitle }}
+            {{
+              card.status === 'VERIFIED'
+                ? '✓ 100% Genuine Payment Verified'
+                : card.status === 'DUPLICATE'
+                ? '⚠️ Duplicate Receipt Replay Blocked'
+                : '🚨 Fake / Manipulated Alert Detected'
+            }}
           </h2>
         </div>
       </div>
 
-      <!-- Action buttons -->
-      <div class="flex items-center space-x-2 no-print">
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center space-x-2">
         <button
           @click="$emit('open-certificate', card)"
-          class="px-3.5 py-2 rounded-xl bg-[#F4B728] hover:bg-[#e0a620] text-black text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-[#F4B728]/20 active:scale-95 transition-all uppercase tracking-wider"
-          title="Open and print tamper-proof official cryptographic certificate"
+          class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-blue-500/20 active:scale-95 transition-all"
         >
-          <span>📜 Official Certificate</span>
+          <span>📜 Attestation Certificate</span>
         </button>
 
         <button
           @click="copyProofHash"
-          class="px-3 py-2 rounded-xl bg-[#120e12] hover:bg-[#1f1720] text-stone-200 border border-[#2d242f] hover:border-[#F4B728]/50 text-xs font-mono font-medium flex items-center space-x-1.5 transition-colors"
+          class="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-800 hover:border-slate-700 text-xs font-mono flex items-center space-x-1.5 transition-colors"
+          title="Copy proof hash"
         >
-          <svg class="w-4 h-4 text-[#F4B728]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
-          <span>{{ copied ? 'Copied Hash!' : 'Copy Hash' }}</span>
+          <span>{{ copied ? 'Copied!' : 'Hash' }}</span>
         </button>
       </div>
     </div>
 
-    <!-- 1b. HIGH-CONTRAST BIG-NUMBER HERO METRIC DISPLAY (Inspired by z.cash $1248.89 card) -->
-    <div class="px-6 py-6 bg-[#120e12] border-b border-[#2d242f]">
-      <div class="max-w-lg mx-auto p-8 rounded-xl bg-white text-stone-950 shadow-2xl border border-stone-200 text-center">
-        <div class="text-[10px] font-mono font-bold uppercase tracking-widest text-stone-500 mb-1">
-          Settlement Attestation Confirmed
+    <!-- 2. CORE TRANSFER SUMMARY (Gestalt Common Region & Nielsen Minimalist Design) -->
+    <div class="p-6 space-y-6">
+      <!-- Big Amount & Pollar Escrow Banner -->
+      <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-0.5">Transfer Amount</span>
+          <div class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+            {{ card.routingPipeline?.receiver?.amountFormatted || '₦0.00' }}
+          </div>
+          <span v-if="card.routingPipeline?.receiver?.multiCurrency?.usdc" class="text-xs text-blue-400 font-mono font-medium">
+            ≈ {{ card.routingPipeline.receiver.multiCurrency.usdc }}
+          </span>
         </div>
-        <div class="text-4xl sm:text-5xl font-extrabold tracking-tight font-sans text-stone-950 py-1">
-          {{ card.routingPipeline?.receiver?.amountFormatted || '₦0.00' }}
-        </div>
-        <div class="flex items-center justify-center space-x-2 mt-2 text-xs font-mono font-bold text-emerald-600">
-          <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>Zero-Knowledge Validated • ZIP-302 Shielded Seal</span>
-        </div>
-        <div class="text-[10px] text-stone-400 mt-2 font-mono truncate">
-          Proof Hash: {{ card.proofHash }}
-        </div>
-      </div>
-    </div>
 
-    <!-- 2. MULTI-CURRENCY CONVERSION BAR -->
-    <div
-      v-if="card.routingPipeline?.receiver?.multiCurrency"
-      class="px-6 py-3 bg-[#161116] border-b border-[#2d242f] flex flex-wrap items-center justify-between gap-3 text-xs font-mono"
-    >
-      <div class="flex items-center space-x-2 text-stone-400">
-        <span class="text-[#F4B728] font-bold">💱 Multi-Currency Valuation:</span>
-      </div>
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 font-bold">
-          🇳🇬 {{ card.routingPipeline.receiver.multiCurrency.ngn }}
-        </span>
-        <span class="px-2.5 py-1 rounded-lg bg-blue-950/60 border border-blue-500/30 text-blue-300 font-bold">
-          🇺🇸 {{ card.routingPipeline.receiver.multiCurrency.usd }}
-        </span>
-        <span class="px-2.5 py-1 rounded-lg bg-[#F4B728]/15 border border-[#F4B728]/30 text-[#F4B728] font-bold">
-          🛡️ {{ card.routingPipeline.receiver.multiCurrency.zec }}
-        </span>
-      </div>
-    </div>
-
-    <!-- 3. VISUAL COUNTERPARTY ROUTING PIPELINE (3-COLUMN FLOW) -->
-    <div class="p-6 border-b border-[#2d242f] bg-[#141015]">
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
-        <span class="flex items-center gap-1.5 font-mono">
-          <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
-          Visual Counterparty Routing Pipeline (Sender ➔ Rail / Ironwood Pool ➔ Receiver)
-        </span>
-        <span class="text-slate-500 font-mono">Settlement Route</span>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
-        <!-- Connecting line on desktop -->
-        <div class="hidden md:block absolute top-1/2 left-1/4 right-1/4 h-0.5 bg-gradient-to-r from-emerald-500/40 via-blue-500/50 to-amber-500/40 -translate-y-1/2 z-0"></div>
-
-        <!-- Column 1: SENDER NODE -->
-        <div class="relative z-10 p-4 rounded-2xl bg-slate-850/90 border border-slate-750 shadow-md space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-mono uppercase text-slate-400">{{ card.routingPipeline.sender.title }}</span>
+        <!-- Pollar Escrow Release Pill -->
+        <div class="sm:text-right p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+          <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 block mb-1">Pollar Web3 Settlement</span>
+          <div class="flex items-center sm:justify-end space-x-2">
             <span
-              v-if="card.routingPipeline.sender.verified"
-              class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] border border-emerald-500/30"
-            >
-              ✓
-            </span>
+              class="w-2 h-2 rounded-full"
+              :class="card.status === 'VERIFIED' ? 'bg-emerald-400' : 'bg-rose-500'"
+            ></span>
             <span
-              v-else
-              class="w-4 h-4 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-[10px] border border-rose-500/30"
+              class="text-xs font-bold font-mono"
+              :class="card.status === 'VERIFIED' ? 'text-emerald-400' : 'text-rose-400'"
             >
-              ✗
+              {{ card.status === 'VERIFIED' ? 'Escrow Released (Gasless)' : 'Escrow Locked' }}
             </span>
           </div>
+          <span class="text-[10px] text-slate-400 block font-mono mt-0.5">0 XLM Fee (Sponsored by Pollar)</span>
+        </div>
+      </div>
 
-          <div class="flex items-center space-x-2.5">
-            <div
-              class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs text-white shadow-sm"
-              :style="{ backgroundColor: card.routingPipeline.sender.bankLogoColor || '#10b981' }"
-            >
-              {{ card.rail === 'LOCAL_BANK' ? card.routingPipeline.sender.institution.slice(0, 2) : 'ZC' }}
-            </div>
-            <div class="min-w-0 flex-1">
-              <h4 class="text-sm font-bold text-white truncate">{{ card.routingPipeline.sender.identifier }}</h4>
-              <p class="text-xs text-slate-400 truncate">{{ card.routingPipeline.sender.institution }}</p>
-            </div>
+      <!-- Human-Friendly Transfer Routing Details -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Sender Box -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Sender</span>
+            <span class="text-[10px] text-emerald-400 font-mono">Bank Verified</span>
+          </div>
+          <div class="text-sm font-bold text-white truncate">
+            {{ card.routingPipeline?.sender?.identifier || 'Account Holder' }}
+          </div>
+          <div class="text-xs text-slate-300 font-medium flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: card.routingPipeline?.sender?.bankLogoColor || '#10b981' }"></span>
+            <span>{{ card.routingPipeline?.sender?.institution || 'Nigerian Bank' }}</span>
           </div>
         </div>
 
-        <!-- Column 2: RAIL / IRONWOOD POOL NODE -->
-        <div class="relative z-10 p-4 rounded-2xl bg-slate-850/90 border border-slate-750 shadow-md space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-mono uppercase text-slate-400">Settlement Rail / Pool</span>
-            <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px] border border-blue-500/30">
-              ⚡
-            </span>
+        <!-- Receiver Box -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Beneficiary (Merchant)</span>
+            <span class="text-[10px] text-emerald-400 font-mono">Settlement Ready</span>
           </div>
-
-          <div>
-            <h4 class="text-xs font-bold text-blue-300">{{ card.routingPipeline.rail.type }}</h4>
-            <p class="text-[11px] font-mono text-slate-400 truncate">{{ card.routingPipeline.rail.protocol }}</p>
-            <p class="text-[10px] font-mono text-slate-500 mt-1 truncate">Ref: {{ card.routingPipeline.rail.identifier }}</p>
+          <div class="text-sm font-bold text-white truncate">
+            {{ card.routingPipeline?.receiver?.identifier || 'Merchant Account' }}
           </div>
-        </div>
-
-        <!-- Column 3: RECEIVER NODE -->
-        <div class="relative z-10 p-4 rounded-2xl bg-slate-850/90 border border-slate-750 shadow-md space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-mono uppercase text-slate-400">{{ card.routingPipeline.receiver.title }}</span>
-            <span
-              v-if="card.routingPipeline.receiver.verified"
-              class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] border border-emerald-500/30"
-            >
-              ✓
-            </span>
-            <span
-              v-else
-              class="w-4 h-4 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-[10px] border border-rose-500/30"
-            >
-              ✗
-            </span>
-          </div>
-
-          <div class="flex items-center justify-between">
-            <div class="min-w-0 flex-1">
-              <h4 class="text-sm font-bold text-white truncate">{{ card.routingPipeline.receiver.identifier }}</h4>
-              <p class="text-xs text-slate-400 truncate">{{ card.routingPipeline.receiver.institution }}</p>
-            </div>
-            <div class="text-right">
-              <span
-                class="text-sm sm:text-base font-extrabold font-mono"
-                :class="card.rail === 'LOCAL_BANK' ? 'text-emerald-400' : 'text-amber-400'"
-              >
-                {{ card.routingPipeline.receiver.amountFormatted }}
-              </span>
-            </div>
+          <div class="text-xs text-slate-300 font-medium">
+            {{ card.routingPipeline?.receiver?.institution || 'Settled Institution' }}
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 4. FORENSICS & REPLAY ALERTS -->
-    <div class="p-6 space-y-4">
-      <!-- Critical Flags or Warnings Alert Box -->
+      <!-- Session Reference / FinTech ID -->
+      <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+        <span class="text-slate-400">Transaction Reference / NIBSS ID:</span>
+        <span class="text-slate-200 font-bold tracking-wider select-all">
+          {{ card.routingPipeline?.rail?.identifier || 'N/A' }}
+        </span>
+      </div>
+
+      <!-- Red/Amber Warning Box if Tampered or Duplicate -->
       <div
-        v-if="card.forensics.flags && card.forensics.flags.length > 0"
-        class="p-4 rounded-2xl space-y-2 border text-xs"
-        :class="[
-          card.status === 'DUPLICATE'
-            ? 'bg-amber-950/40 border-amber-500/50 text-amber-200'
-            : 'bg-rose-950/40 border-rose-500/50 text-rose-200'
-        ]"
+        v-if="card.status !== 'VERIFIED' && card.forensics?.flags?.length"
+        class="p-4 rounded-xl border space-y-2 text-xs"
+        :class="card.status === 'DUPLICATE' ? 'bg-amber-950/30 border-amber-600/50 text-amber-200' : 'bg-rose-950/30 border-rose-600/50 text-rose-200'"
       >
-        <div class="font-bold uppercase tracking-wider flex items-center space-x-2">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span>Forensic & Anti-Replay Alerts:</span>
+        <div class="font-bold flex items-center space-x-2">
+          <span>⚠️ Interception Reason:</span>
         </div>
-        <ul class="list-disc list-inside space-y-1">
-          <li v-for="(flag, idx) in card.forensics.flags" :key="idx" class="font-mono text-[11px] leading-snug">
-            {{ flag }}
-          </li>
+        <ul class="list-disc list-inside space-y-1 font-mono text-[11px]">
+          <li v-for="(flag, idx) in card.forensics.flags" :key="idx">{{ flag }}</li>
         </ul>
       </div>
 
-      <!-- RAIL 1 SPECIFIC: POLLAR GASLESS STELLAR ESCROW & ANCHOR CARD -->
-      <div
-        v-if="card.rail === 'LOCAL_BANK' && card.pollarAnchor"
-        class="p-4 rounded-2xl bg-[#141217] border border-emerald-500/40 text-xs space-y-3 shadow-lg"
-      >
-        <div class="flex items-center justify-between border-b border-[#2d242f] pb-2.5">
-          <div class="flex items-center space-x-2">
-            <span class="text-emerald-400 font-bold font-mono flex items-center gap-1.5">
-              <span>⚡ Pollar Gasless Stellar Escrow & Anchor</span>
-            </span>
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-mono border border-emerald-800">
-              Stellar Ledger #{{ card.pollarAnchor.stellarLedgerSeq }}
-            </span>
-          </div>
-
-          <div class="flex items-center space-x-2">
-            <span
-              class="text-[10px] font-mono px-2 py-0.5 rounded-full"
-              :class="card.pollarAnchor.claimCount > 1 ? 'bg-amber-950 text-amber-300 font-bold border border-amber-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'"
-            >
-              {{ card.pollarAnchor.claimCount === 1 ? '✓ Proof Anchored' : `Replay Attempt #${card.pollarAnchor.claimCount}` }}
-            </span>
-          </div>
-        </div>
-
-        <div class="space-y-1.5 font-mono text-[11px]">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-stone-300">
-            <span class="text-stone-500">Merchant Pollar Smart Account:</span>
-            <span class="text-emerald-400 font-bold truncate">{{ card.pollarAnchor.merchantPollarWallet }}</span>
-          </div>
-
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-stone-300">
-            <span class="text-stone-500">Escrow Payout Settlement:</span>
-            <span class="font-bold text-white bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80">
-              ${{ card.pollarAnchor.payoutAmount }} {{ card.pollarAnchor.payoutAsset }}
-              <span class="text-emerald-400 ml-1">({{ card.pollarAnchor.escrowStatus }})</span>
-            </span>
-          </div>
-
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-stone-300">
-            <span class="text-stone-500">Pollar Paymaster Gas Sponsorship:</span>
-            <span class="text-emerald-300 font-bold">{{ card.pollarAnchor.sponsorFee }}</span>
-          </div>
-
-          <div class="text-stone-400 truncate">
-            <span class="text-stone-500">Stellar Transaction Hash: </span>
-            <a
-              :href="card.pollarAnchor.explorerUrl"
-              target="_blank"
-              class="text-emerald-400 hover:text-emerald-300 underline font-bold"
-            >
-              {{ card.pollarAnchor.stellarTxHash }} ↗
-            </a>
-          </div>
-
-          <div class="text-stone-400">
-            <span class="text-stone-500">Stellar Memo (Anchored Proof): </span>
-            <span class="text-stone-200 font-bold bg-[#1e1721] px-1.5 py-0.5 rounded border border-[#2d242f]">
-              {{ card.pollarAnchor.stellarMemoText }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- RAIL 1 SPECIFIC: ZCASH LEGACY ANCHOR CARD (IF APPLICABLE) -->
-      <div
-        v-if="card.rail === 'LOCAL_BANK' && card.zcashShieldedAnchor && !card.pollarAnchor"
-        class="p-4 rounded-2xl bg-slate-900 border border-blue-500/30 text-xs space-y-3"
-      >
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-          <div class="flex items-center space-x-2">
-            <span class="text-blue-400 font-bold font-mono flex items-center gap-1.5">
-              <span>🛡️ Zcash Ironwood (NU6.3) 512-Byte Shielded Memo Anchor</span>
-            </span>
-            <span class="text-[10px] px-2 py-0.2 rounded-full bg-blue-950 text-blue-300 font-mono border border-blue-800">
-              Ironwood Pool (Block #{{ card.zcashShieldedAnchor.blockHeight }})
-            </span>
-          </div>
-
-          <div class="flex items-center space-x-2">
-            <span
-              class="text-[10px] font-mono px-2 py-0.5 rounded-full"
-              :class="card.zcashShieldedAnchor.claimCount > 1 ? 'bg-amber-950 text-amber-300 font-bold' : 'bg-emerald-950 text-emerald-300'"
-            >
-              {{ card.zcashShieldedAnchor.claimCount === 1 ? 'Proof Anchored' : `Replay Attempt #${card.zcashShieldedAnchor.claimCount}` }}
-            </span>
-          </div>
-        </div>
-
-        <div class="space-y-1 font-mono text-[11px]">
-          <div class="text-slate-400">
-            <span class="text-slate-500">SHA-256 Receipt Fingerprint: </span>
-            <span class="text-emerald-400 font-bold">{{ card.zcashShieldedAnchor.proofHash }}</span>
-          </div>
-          <div class="text-slate-400 truncate">
-            <span class="text-slate-500">Zcash Shielded TxID: </span>
-            <a
-              :href="card.zcashShieldedAnchor.explorerUrl"
-              target="_blank"
-              class="text-blue-400 hover:text-blue-300 underline"
-            >
-              {{ card.zcashShieldedAnchor.zcashTxId }}
-            </a>
-          </div>
-        </div>
-
-        <!-- Decrypted 512-Byte Memo Box -->
-        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-          <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider flex items-center justify-between">
-            <span>Zcash Encrypted Note Memo (512-Byte ZIP-302 Payload):</span>
-            <button
-              @click="showHexMemo = !showHexMemo"
-              class="text-blue-400 hover:text-blue-300 font-mono font-bold flex items-center gap-1 transition-colors"
-            >
-              <span>{{ showHexMemo ? 'Hide Raw Hex' : '🔍 Inspect 512-Byte Hex Memo' }}</span>
-            </button>
-          </div>
-          <p class="font-mono text-xs text-slate-200 break-words leading-relaxed">
-            {{ card.zcashShieldedAnchor.memoUtf8 }}
-          </p>
-        </div>
-
-        <!-- RAW 512-BYTE HEX MEMO INSPECTOR DRAWER -->
-        <div
-          v-if="showHexMemo && card.zcashShieldedAnchor.memoHex"
-          class="p-3.5 rounded-xl bg-slate-950/90 border border-blue-500/40 space-y-2 font-mono"
+      <!-- 3. COLLAPSIBLE DEEP FORENSICS ACCORDION (Nielsen #8 & #10: Progressive Disclosure) -->
+      <div class="border-t border-slate-800 pt-4">
+        <button
+          @click="showDetails = !showDetails"
+          class="w-full py-2.5 px-4 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-slate-800 text-xs font-mono text-slate-300 flex items-center justify-between transition-colors"
         >
-          <div class="flex items-center justify-between text-[10px] text-slate-400">
-            <span class="text-blue-400 font-bold">Raw 512-Byte ZIP-302 Hex Stream (1024 Characters):</span>
-            <span class="text-slate-500">Bytes 0x000 - 0x1ff (Strict Zero-Padded)</span>
-          </div>
-          <div class="p-2.5 rounded-lg bg-black/60 border border-slate-800 text-[10px] text-emerald-400/90 break-all leading-tight font-mono max-h-36 overflow-y-auto">
-            {{ card.zcashShieldedAnchor.memoHex }}
-          </div>
-          <div v-if="card.zcashShieldedAnchor.memoJsonMetadata" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
-            <span class="text-slate-500 text-[10px] block mb-1">Decoded Memo JSON Metadata:</span>
-            <pre class="text-[10px] text-blue-300 overflow-x-auto">{{ JSON.stringify(card.zcashShieldedAnchor.memoJsonMetadata, null, 2) }}</pre>
-          </div>
-        </div>
-      </div>
-
-      <!-- RAIL 2 SPECIFIC: POLLAR STELLAR GASLESS EXPLORER -->
-      <div
-        v-if="card.rail === 'POLLAR_STELLAR'"
-        class="p-4 rounded-2xl bg-[#141217] border border-emerald-500/40 text-xs space-y-3 shadow-lg"
-      >
-        <div class="flex items-center justify-between border-b border-[#2d242f] pb-2.5">
           <div class="flex items-center space-x-2">
-            <span class="text-emerald-400 font-bold font-mono flex items-center gap-1.5">
-              <span>⚡ Pollar Smart Wallet & Stellar Escrow Explorer</span>
-            </span>
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 font-mono border border-emerald-800">
-              Stellar Testnet • 0 XLM User Gas
-            </span>
+            <span>🔬</span>
+            <span class="font-semibold text-white">Cryptographic Proof & Blockchain Ledger Details</span>
           </div>
+          <span class="text-blue-400">{{ showDetails ? '▲ Hide Details' : '▼ View Deep Forensics' }}</span>
+        </button>
 
-          <span class="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-800">
-            {{ card.settlement?.status === 'LOCKED' ? 'ESCROW LOCKED' : 'ESCROW SETTLED' }}
-          </span>
-        </div>
-
-        <div class="space-y-2 font-mono text-[11px]">
-          <div class="p-3 rounded-xl bg-black/40 border border-[#2d242f] space-y-1.5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-stone-300">
-              <span class="text-stone-500">Merchant Pollar Smart Account:</span>
-              <span class="text-emerald-400 font-bold truncate">{{ card.pollarSmartWallet?.address }}</span>
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-stone-300">
-              <span class="text-stone-500">Sponsored Fee (Paymaster):</span>
-              <span class="text-emerald-300 font-bold">{{ card.pollarSmartWallet?.sponsoredBy }}</span>
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-stone-300">
-              <span class="text-stone-500">USDC Payout Amount:</span>
-              <span class="text-white font-bold">{{ card.settlement?.amount }} USDC ({{ card.settlement?.ngnEquivalent }})</span>
-            </div>
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between text-stone-300">
-              <span class="text-stone-500">Stellar Memo (Anchored Receipt):</span>
-              <span class="text-stone-200 font-bold">{{ card.settlement?.memoText }}</span>
+        <!-- Deep Forensics Details Drawer -->
+        <div v-if="showDetails" class="mt-3 p-4 rounded-xl bg-slate-950 border border-slate-800/80 space-y-4 text-xs font-mono">
+          <!-- Pollar Stellar Anchor Details -->
+          <div v-if="card.pollarAnchor" class="space-y-2">
+            <span class="text-emerald-400 font-bold block border-b border-slate-800 pb-1">⚡ Stellar On-Chain Anchor:</span>
+            <div class="space-y-1 text-slate-400 text-[11px]">
+              <div><span class="text-slate-500">Stellar Tx Hash: </span>
+                <a :href="card.pollarAnchor.explorerUrl" target="_blank" class="text-blue-400 hover:underline">
+                  {{ card.pollarAnchor.stellarTxHash }} ↗
+                </a>
+              </div>
+              <div><span class="text-slate-500">Ledger Sequence: </span>#{{ card.pollarAnchor.stellarLedgerSeq }}</div>
+              <div><span class="text-slate-500">Merchant Pollar Wallet: </span>{{ card.pollarAnchor.merchantPollarWallet }}</div>
+              <div><span class="text-slate-500">Gas Sponsorship: </span>{{ card.pollarAnchor.sponsorFee }}</div>
+              <div><span class="text-slate-500">Anchored Memo: </span>{{ card.pollarAnchor.stellarMemoText }}</div>
             </div>
           </div>
 
-          <div class="text-stone-400 truncate">
-            <span class="text-stone-500">Stellar Transaction Hash: </span>
-            <a
-              :href="card.explorerUrl"
-              target="_blank"
-              class="text-emerald-400 hover:text-emerald-300 underline font-bold"
-            >
-              {{ card.txHash }} ↗
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- RAIL 2 SPECIFIC: ZCASH SHIELDED TRANSACTION & SELECTIVE DISCLOSURE -->
-      <div
-        v-if="card.rail === 'ZCASH' && card.zcashDetails"
-        class="p-4 rounded-2xl bg-slate-900 border border-blue-500/30 text-xs space-y-3"
-      >
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-          <div class="flex items-center space-x-2">
-            <span class="text-blue-400 font-bold font-mono flex items-center gap-1.5">
-              <span>🛡️ Zcash Selective Disclosure Inspector</span>
-            </span>
-            <span
-              class="text-[10px] px-2 py-0.2 rounded-full font-mono font-bold"
-              :class="card.zcashDetails.selectiveDisclosure.isValidDisclosure ? 'bg-amber-950 text-amber-300 border border-amber-800' : 'bg-slate-800 text-slate-400'"
-            >
-              {{ card.zcashDetails.selectiveDisclosure.isValidDisclosure ? 'Decrypted via Viewing Key' : 'Zero-Knowledge Shielded' }}
-            </span>
-          </div>
-
-          <span class="text-[10px] font-mono text-slate-400">
-            Block #{{ card.zcashDetails.blockHeight }} ({{ card.zcashDetails.confirmations }} Confirmations)
-          </span>
-        </div>
-
-        <p class="text-slate-300 text-xs leading-relaxed">
-          {{ card.zcashDetails.selectiveDisclosure.disclosureStatement }}
-        </p>
-
-        <!-- 512-Byte Memo Section -->
-        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-              512-Byte Zcash Encrypted Note Memo (ZIP-302)
-            </span>
-            <div class="flex items-center space-x-2">
-              <button
-                v-if="card.zcashDetails.memo.rawHex"
-                @click="showHexMemo = !showHexMemo"
-                class="text-[10px] text-blue-400 hover:text-blue-300 font-mono font-bold transition-colors"
-              >
-                {{ showHexMemo ? 'Hide Hex' : '🔍 Inspect Hex Memo' }}
-              </button>
-              <span
-                class="text-[10px] font-mono px-2 py-0.2 rounded"
-                :class="card.zcashDetails.memo.selectiveDisclosureActive ? 'bg-emerald-950 text-emerald-300' : 'bg-slate-800 text-slate-400'"
-              >
-                {{ card.zcashDetails.memo.selectiveDisclosureActive ? 'DECRYPTED' : 'ENCRYPTED CIPHERTEXT' }}
-              </span>
+          <!-- NIBSS Mathematical Segment Breakdown -->
+          <div v-if="card.forensics?.nibssAnalysis" class="space-y-2">
+            <span class="text-blue-400 font-bold block border-b border-slate-800 pb-1">📐 NIBSS 30-Digit Decoding:</span>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+              <div class="p-2.5 rounded bg-slate-900">
+                <span class="text-slate-500 block text-[10px]">Bank Code (Digits 1-6)</span>
+                <span class="text-slate-200 font-bold">{{ card.forensics.nibssAnalysis.bankCodeSegment?.raw }}</span>
+                <span class="text-emerald-400 block text-[10px] mt-0.5">{{ card.forensics.nibssAnalysis.bankCodeSegment?.resolvedBank?.shortName || 'CBN Code' }}</span>
+              </div>
+              <div class="p-2.5 rounded bg-slate-900">
+                <span class="text-slate-500 block text-[10px]">WAT Timestamp (Digits 7-18)</span>
+                <span class="text-slate-200 font-bold">{{ card.forensics.nibssAnalysis.timestampSegment?.raw }}</span>
+                <span class="text-slate-400 block text-[10px] mt-0.5 truncate">{{ card.forensics.nibssAnalysis.timestampSegment?.parsedHuman }}</span>
+              </div>
+              <div class="p-2.5 rounded bg-slate-900">
+                <span class="text-slate-500 block text-[10px]">Entropy Score (Digits 19-30)</span>
+                <span class="text-slate-200 font-bold">{{ card.forensics.nibssAnalysis.entropySegment?.entropyScore }}/100</span>
+                <span class="text-emerald-400 block text-[10px] mt-0.5">High Randomness</span>
+              </div>
             </div>
           </div>
 
-          <p
-            class="font-mono text-xs break-words"
-            :class="card.zcashDetails.memo.selectiveDisclosureActive ? 'text-emerald-300' : 'text-slate-500 italic'"
-          >
-            {{ card.zcashDetails.memo.decryptedText || '[Encrypted 512-byte payload. Supply Unified Viewing Key to reveal invoice & attestation details]' }}
-          </p>
-        </div>
-
-        <!-- RAW 512-BYTE HEX MEMO INSPECTOR DRAWER (ZCASH RAIL) -->
-        <div
-          v-if="showHexMemo && card.zcashDetails.memo.rawHex"
-          class="p-3.5 rounded-xl bg-slate-950/90 border border-blue-500/40 space-y-2 font-mono"
-        >
-          <div class="flex items-center justify-between text-[10px] text-slate-400">
-            <span class="text-blue-400 font-bold">Raw 512-Byte ZIP-302 Hex Stream (1024 Characters):</span>
-            <span class="text-slate-500">Bytes 0x000 - 0x1ff</span>
+          <!-- SHA-256 Proof Fingerprint -->
+          <div class="p-2.5 rounded bg-slate-900 text-[11px]">
+            <span class="text-slate-500 block text-[10px] mb-0.5">Deterministic SHA-256 Receipt Fingerprint:</span>
+            <span class="text-emerald-400 select-all break-all">{{ card.proofHash }}</span>
           </div>
-          <div class="p-2.5 rounded-lg bg-black/60 border border-slate-800 text-[10px] text-emerald-400/90 break-all leading-tight font-mono max-h-36 overflow-y-auto">
-            {{ card.zcashDetails.memo.rawHex }}
-          </div>
-          <div v-if="card.zcashDetails.memo.memoJsonMetadata" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
-            <span class="text-slate-500 text-[10px] block mb-1">Decoded Memo JSON Metadata:</span>
-            <pre class="text-[10px] text-blue-300 overflow-x-auto">{{ JSON.stringify(card.zcashDetails.memo.memoJsonMetadata, null, 2) }}</pre>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 5. ON-CHAIN ATTESTATION FOOTER & QR CODE -->
-    <div class="px-6 py-5 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center space-x-4 min-w-0 flex-1">
-        <!-- Live QR Code -->
-        <div class="w-16 h-16 rounded-xl bg-white p-1 flex-shrink-0 shadow flex items-center justify-center">
-          <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" alt="Verification QR Code" class="w-full h-full" />
-          <div v-else class="w-full h-full bg-slate-200 animate-pulse rounded-lg"></div>
-        </div>
-
-        <!-- Attestation Details -->
-        <div class="space-y-1 min-w-0 font-mono">
-          <div class="flex items-center space-x-2">
-            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800">
-              DualVerifier Protocol v2.0
-            </span>
-            <span class="text-[10px] text-slate-400">
-              Ironwood (NU6.3) & ZK Privacy
-            </span>
-          </div>
-
-          <div class="text-xs text-slate-300 truncate">
-            <span class="text-slate-500">Hash / Tx: </span>
-            <span class="text-blue-400 font-bold">{{ card.proofHash }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Seal Badge -->
-      <div class="flex-shrink-0 text-right">
-        <div class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono">
-          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span class="text-emerald-300 font-bold">Immutable Verification Pass</span>
         </div>
       </div>
     </div>
@@ -596,8 +258,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
-import QRCode from 'qrcode';
+import { ref } from 'vue';
 
 const props = defineProps<{
   card: any;
@@ -605,41 +266,26 @@ const props = defineProps<{
 
 defineEmits<{
   (e: 'open-certificate', card: any): void;
-  (e: 'trigger-replay', card: any): void;
 }>();
 
 const copied = ref(false);
-const showHexMemo = ref(false);
-const qrCodeDataUrl = ref('');
-
-function generateQR() {
-  if (!props.card?.proofHash) return;
-  const verifyUrl = `${window.location.origin}?proof=${props.card.proofHash}`;
-  QRCode.toDataURL(verifyUrl, { width: 128, margin: 1, color: { dark: '#020617', light: '#ffffff' } }, (err, url) => {
-    if (!err && url) qrCodeDataUrl.value = url;
-  });
-}
-
-onMounted(() => {
-  generateQR();
-});
-
-watch(() => props.card?.proofHash, () => {
-  generateQR();
-});
+const showDetails = ref(false);
 
 function formatTimestamp(iso: string) {
   if (!iso) return '';
   const d = new Date(iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return isNaN(d.getTime()) ? iso : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function copyProofHash() {
-  if (!props.card?.proofHash) return;
-  navigator.clipboard.writeText(props.card.proofHash);
-  copied.value = true;
-  setTimeout(() => {
-    copied.value = false;
-  }, 2500);
+async function copyProofHash() {
+  if (props.card?.proofHash) {
+    try {
+      await navigator.clipboard.writeText(props.card.proofHash);
+      copied.value = true;
+      setTimeout(() => (copied.value = false), 2000);
+    } catch (err) {
+      console.warn('Copy failed', err);
+    }
+  }
 }
 </script>

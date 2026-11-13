@@ -1,116 +1,65 @@
 <template>
-  <div class="bg-[#161116] border-b border-[#2d242f] py-3 px-4 sm:px-6 backdrop-blur-xl transition-colors">
-    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-3">
-      <!-- Title & Live Status -->
-      <div class="flex items-center space-x-2.5">
+  <div class="bg-[#0B0F19]/80 border-b border-slate-800/80 py-3 px-4 sm:px-6 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      <!-- Title & Live Indicator -->
+      <div class="flex items-center space-x-2 text-xs font-mono">
         <span class="flex h-2 w-2 relative">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F4B728] opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-[#F4B728]"></span>
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
         </span>
-        <span class="text-xs font-bold uppercase tracking-widest text-[#F4B728] font-mono">
-          Hackathon Stage Presets
-        </span>
-        <span class="text-xs text-stone-600 hidden sm:inline">|</span>
-        <span class="text-xs text-stone-300 hidden sm:inline font-mono">
-          One-Click Test Vectors:
-        </span>
+        <span class="font-bold text-slate-200">1-Click Test Scenarios:</span>
+        <span class="text-slate-500 hidden sm:inline">(Try these to test instant verification)</span>
       </div>
 
-      <!-- 4 One-Click Judge Test Buttons -->
-      <div class="flex flex-wrap items-center gap-2">
-        <!-- Demo 1: Valid GTBank ₦150k Receipt + Pollar Gasless Escrow -->
+      <!-- 4 One-Click Scenario Buttons -->
+      <div class="flex flex-wrap items-center justify-center gap-2">
+        <!-- Demo 1: Authentic GTBank N150k -->
         <button
           @click="$emit('select-preset', 'demo-1-valid-gtb-150k')"
-          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1c161d] hover:bg-[#251d27] text-emerald-400 border border-emerald-500/30 hover:border-emerald-400 transition-all shadow-sm active:scale-95"
-          title="Valid ₦150,000 GTBank transfer anchored on Stellar via Pollar SDK with sponsored gas fees"
+          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-600/40 hover:border-emerald-400 transition-all shadow-sm active:scale-95"
+          title="Valid ₦150,000 GTBank transfer with genuine NIBSS session ID"
         >
-          <span>✓</span>
-          <span>1: Valid GTBank ₦150k</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>1. Valid ₦150k Receipt</span>
         </button>
 
-        <!-- Demo 2: Fake OPay Alert (Session ID Timestamp Mismatch) -->
+        <!-- Demo 2: Fake Canva Alert -->
         <button
           @click="$emit('select-preset', 'demo-2-fake-opay-alert')"
-          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1c161d] hover:bg-[#251d27] text-rose-400 border border-rose-500/30 hover:border-rose-400 transition-all shadow-sm active:scale-95"
-          title="Fake-alert receipt spoofed with Access Bank code 000014 and repeating dummy serials"
+          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-600/40 hover:border-rose-400 transition-all shadow-sm active:scale-95"
+          title="Spoofed Canva fake alert with mismatched bank codes and synthetic serials"
         >
-          <span>⚠</span>
-          <span>2: Fake Canva Alert</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+          <span>2. Fake Canva Alert</span>
         </button>
 
-        <!-- Demo 3: Pollar Smart Wallet + Stellar Escrow Explorer -->
+        <!-- Demo 3: Pollar Gasless Escrow -->
         <button
           @click="$emit('select-preset', 'demo-3-pollar-stellar-settlement')"
-          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1c161d] hover:bg-[#251d27] text-emerald-400 border border-emerald-500/30 hover:border-emerald-400 transition-all shadow-sm active:scale-95"
-          title="Pollar Smart Account on Stellar Testnet with 100% sponsored gas fees and USDC escrow"
+          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-600/40 hover:border-blue-400 transition-all shadow-sm active:scale-95"
+          title="Pollar Smart Account with 0 XLM gas fee and $98.68 USDC payout"
         >
-          <span>⚡</span>
-          <span>3: Pollar Escrow Explorer</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+          <span>3. Pollar Gasless Escrow</span>
         </button>
 
-        <!-- Demo 4: Re-Used Receipt Double-Spend Attack Trap -->
+        <!-- Demo 4: Replay Double-Spend Trap -->
         <button
           @click="$emit('select-preset', 'demo-4-reused-receipt-replay')"
-          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-[#1c161d] hover:bg-[#251d27] text-amber-400 border border-amber-500/30 hover:border-amber-400 transition-all shadow-sm active:scale-95"
-          title="Re-verify Demo 1 receipt to demonstrate Pollar Stellar Registry catching duplicate receipt replay"
+          class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-600/40 hover:border-amber-400 transition-all shadow-sm active:scale-95"
+          title="Attempting to re-claim a previously settled receipt"
         >
-          <span>⟳</span>
-          <span>4: Replay Trap</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          <span>4. Replay Fraud Trap</span>
         </button>
-
-        <!-- Pitch Script Modal Toggle -->
-        <button
-          @click="showScript = !showScript"
-          class="p-1.5 rounded-lg bg-[#191419] hover:bg-[#211b22] text-stone-400 hover:text-white border border-[#2d242f] transition-colors"
-          title="Toggle Judge Pitch Guide"
-        >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- Judge Pitch Script Drawer -->
-    <div v-if="showScript" class="max-w-7xl mx-auto mt-3 p-4 rounded-xl bg-[#191419] border border-[#F4B728]/30 text-xs space-y-2">
-      <div class="flex items-center justify-between border-b border-[#2d242f] pb-2">
-        <span class="font-bold text-[#F4B728] flex items-center gap-1.5 font-mono">
-          <span>🛡️</span>
-          DualVerifier 3-Minute Hackathon Pitch Script (Judge Flow)
-        </span>
-        <button @click="showScript = false" class="text-stone-400 hover:text-white">✕</button>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-stone-300">
-        <div class="p-3 rounded-lg bg-[#120e12] border border-[#2d242f]">
-          <p class="font-bold text-emerald-400 mb-1 font-mono">Step 1: Web2 Receipt + Ironwood Seal</p>
-          <p class="text-stone-400 leading-relaxed text-[11px]">
-            Click <strong>Demo 1</strong>: The 30-digit NIBSS code decodes deterministically. The SHA-256 fingerprint is immediately anchored inside a <strong>Zcash Ironwood (NU6.3) 512-Byte Encrypted Memo</strong>.
-          </p>
-        </div>
-        <div class="p-3 rounded-lg bg-[#120e12] border border-[#2d242f]">
-          <p class="font-bold text-rose-400 mb-1 font-mono">Step 2: Catching Fake Alerts & Forgeries</p>
-          <p class="text-stone-400 leading-relaxed text-[11px]">
-            Click <strong>Demo 2</strong>: Engine catches fake alert with Access Bank code mismatch (000014), timestamp difference (>8,400s), and repeating 111111111111 serials in crimson!
-          </p>
-        </div>
-        <div class="p-3 rounded-lg bg-[#120e12] border border-[#2d242f]">
-          <p class="font-bold text-[#F4B728] mb-1 font-mono">Step 3: Web3 Privacy & Anti-Replay Trap</p>
-          <p class="text-stone-400 leading-relaxed text-[11px]">
-            Click <strong>Demo 3 & 4</strong>: Unified Address selective disclosure reveals note amounts. Re-verifying Demo 1 triggers the anti-double-spend trap in high-contrast Amber!
-          </p>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-
 defineEmits<{
   (e: 'select-preset', presetId: string): void;
   (e: 'trigger-replay'): void;
 }>();
-
-const showScript = ref(false);
 </script>

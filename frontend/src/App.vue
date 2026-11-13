@@ -1,30 +1,30 @@
 <template>
-  <div class="min-h-screen bg-[#120e12] zcash-obsidian-bg text-[#f3f0f4] flex flex-col font-sans selection:bg-[#F4B728] selection:text-black antialiased">
-    <!-- Navbar with Zcash Emblem & Dual-Rail Branding -->
+  <div class="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white antialiased">
+    <!-- Navbar with DualVerifier Brand Logo -->
     <NavbarLogo :memoCount="shieldedMemos.length" @open-ledger="isLedgerOpen = true" />
 
-    <!-- Hackathon Stage Test Vectors -->
+    <!-- 1-Click Test Scenarios Bar -->
     <DemoPresetBar
       @select-preset="handleSelectPreset"
       @trigger-replay="handleTriggerReplay"
     />
 
     <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-      <!-- Hero Banner & Segmented Mode Switcher (z.cash aesthetic) -->
-      <div id="verifier-section" class="flex flex-col items-center text-center space-y-5 pb-8 border-b border-[#2d242f]">
-        <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-[#191419] border border-[#2d242f] text-xs font-mono">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <!-- Hero Banner & Segmented Mode Switcher -->
+      <div id="verifier-section" class="flex flex-col items-center text-center space-y-4 pb-6 border-b border-slate-800/80">
+        <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="text-stone-300">Dual-Rail Settlement Engine:</span>
-          <span class="text-emerald-400 font-bold">NIBSS + Pollar Gasless Stellar Escrow</span>
+          <span class="text-slate-300">Dual-Rail Settlement Engine:</span>
+          <span class="text-blue-400 font-bold">NIBSS Banking + Pollar Stellar Escrow</span>
         </div>
 
-        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-serif text-white tracking-tight font-normal">
-          Transaction Verification
+        <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight font-sans">
+          Instant Payment Verification
         </h1>
 
-        <p class="text-sm sm:text-base text-stone-400 max-w-2xl leading-relaxed">
-          The DualVerifier network unifies Web2 NIBSS banking settlement mathematics with Web3 Pollar Smart Accounts, Stellar Escrow Settlement, and 100% Sponsored Gasless Transactions.
+        <p class="text-sm sm:text-base text-slate-400 max-w-2xl leading-relaxed">
+          Verify Nigerian bank receipts in seconds against fake-alert fraud, and automatically release trustless, gasless USDC escrows powered by Pollar.
         </p>
 
         <!-- Segmented Tab Switcher -->
@@ -37,21 +37,21 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <!-- LEFT COLUMN: Verifier Input Command Center (5 cols) -->
         <div class="lg:col-span-5 space-y-6">
-          <div class="bg-[#191419] border border-[#2d242f] rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-            <!-- Accent Top Line in Emerald / Gold -->
+          <div class="bg-[#0E1322] border border-slate-800/90 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <!-- Accent Top Line in Blue / Emerald -->
             <div
               class="absolute top-0 left-0 right-0 h-1 transition-all duration-300"
-              :class="activeRail === 'LOCAL_BANK' ? 'bg-gradient-to-r from-emerald-500 to-[#F4B728]' : 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500'"
+              :class="activeRail === 'LOCAL_BANK' ? 'bg-gradient-to-r from-blue-500 to-emerald-400' : 'bg-gradient-to-r from-blue-500 via-indigo-400 to-cyan-400'"
             ></div>
 
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center space-x-2">
                 <span
                   class="w-2.5 h-2.5 rounded-full animate-pulse"
-                  :class="activeRail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-emerald-400'"
+                  :class="activeRail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-blue-400'"
                 ></span>
                 <h3 class="text-sm font-bold uppercase tracking-wider font-mono text-white">
-                  {{ activeRail === 'LOCAL_BANK' ? 'Rail 1: NIBSS Bank Receipt Verifier' : 'Rail 2: Pollar Stellar Gasless Explorer' }}
+                  {{ activeRail === 'LOCAL_BANK' ? 'Rail 1: Bank Receipt Verifier' : 'Rail 2: Pollar Stellar Explorer' }}
                 </h3>
               </div>
 
@@ -59,7 +59,7 @@
               <button
                 v-if="activeRail === 'LOCAL_BANK' && currentPresetVisual"
                 @click="isReceiptModalOpen = true"
-                class="text-xs text-[#F4B728] hover:underline font-mono flex items-center gap-1"
+                class="text-xs text-blue-400 hover:underline font-mono flex items-center gap-1"
               >
                 <span>View Receipt</span>
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,13 +88,13 @@
           </div>
 
           <!-- Pollar Gasless Protocol Explainer Card -->
-          <div id="privacy-protocol" class="p-4 rounded-xl bg-[#161116] border border-[#2d242f] text-xs space-y-2.5">
-            <div class="font-bold text-stone-200 flex items-center justify-between font-mono">
-              <span class="text-emerald-400">Pollar SDK Gasless Escrow</span>
-              <span class="text-[10px] px-2 py-0.5 rounded bg-[#1f1720] text-emerald-300">Stellar Testnet</span>
+          <div id="privacy-protocol" class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-2">
+            <div class="font-bold text-slate-200 flex items-center justify-between font-mono">
+              <span class="text-blue-400">Pollar Smart Escrow</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">Gasless • Stellar</span>
             </div>
-            <p class="text-stone-400 leading-relaxed text-[11px]">
-              Every verified Nigerian banking transfer anchors a SHA-256 fingerprint onto Stellar via <strong class="text-stone-200">Pollar (@pollar/core)</strong>. Pollar's paymaster sponsors 100% of user network fees, allowing merchants to settle in USDC with zero XLM and zero seed phrases.
+            <p class="text-slate-400 leading-relaxed text-[11px]">
+              Every verified Nigerian banking transfer anchors a cryptographic proof onto Stellar via <strong class="text-slate-200">Pollar (@pollar/core)</strong>. Pollar's paymaster sponsors 100% of user network fees, allowing merchants to settle in USDC with zero XLM and zero seed phrases.
             </p>
           </div>
         </div>
@@ -111,25 +111,25 @@
           <!-- Empty State / Standby Screen -->
           <div
             v-else
-            class="rounded-2xl border border-[#2d242f] bg-[#191419] p-12 text-center flex flex-col items-center justify-center space-y-4 shadow-xl"
+            class="rounded-2xl border border-slate-800/90 bg-[#0E1322] p-12 text-center flex flex-col items-center justify-center space-y-4 shadow-xl"
           >
-            <div class="w-16 h-16 rounded-full bg-[#120e12] border border-[#2d242f] flex items-center justify-center text-[#F4B728] shadow-inner">
+            <div class="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-inner">
               <svg class="w-8 h-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             <div class="max-w-sm space-y-1">
-              <h3 class="text-base font-bold text-white font-sans">Forensic Verifier Standby</h3>
-              <p class="text-xs text-stone-400 leading-relaxed">
-                Upload a Nigerian bank receipt, input a 30-digit NIBSS session ID, or query a Pollar Stellar Escrow transaction to render the Blue Tick Certificate.
+              <h3 class="text-base font-bold text-white">Forensic Verifier Standby</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Upload a Nigerian bank receipt, enter a transaction reference number, or click a demo scenario to see instant verification.
               </p>
             </div>
             <div class="pt-2">
               <button
                 @click="handleSelectPreset('demo-1-valid-gtb-150k')"
-                class="px-5 py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider bg-[#F4B728] hover:bg-[#e0a620] text-black transition-all shadow-md active:scale-95"
+                class="px-5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-500/20 active:scale-95"
               >
-                Run Demo 1: Valid GTBank ₦150k
+                Try Demo: Valid GTBank ₦150k
               </button>
             </div>
           </div>
@@ -137,7 +137,7 @@
       </div>
 
       <!-- MODULE 4: LIVE VERIFICATION AUDIT LEDGER TABLE AT BOTTOM OF PAGE -->
-      <section id="audit-ledger" class="pt-6 border-t border-[#2d242f]">
+      <section id="audit-ledger" class="pt-6 border-t border-slate-800/80">
         <VerificationHistoryDrawer
           :items="auditHistoryItems"
           @select-history-item="handleSelectHistoryItem"
