@@ -540,6 +540,11 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
     status = 'INVALID';
     badgeTitle = 'INVALID SESSION ID';
     badgeColor = 'crimson';
+  } else if (!isGenuine) {
+    // Forged / tampered receipts ALWAYS take precedence over duplicate replay
+    status = 'TAMPERED';
+    badgeTitle = 'FORGED / TAMPERED RECEIPT DETECTED';
+    badgeColor = 'crimson';
   } else if (anchorResult.status === 'DUPLICATE_REPLAY_DETECTED' || anchorResult.claimCount > 1) {
     // REPLAY ATTACK INTERCEPTED BY POLLAR STELLAR REGISTRY!
     status = 'DUPLICATE';
@@ -548,10 +553,6 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
     allFlags.unshift(
       `CRITICAL REPLAY INTERCEPTION: Receipt fingerprint already anchored on Stellar ledger #${anchorResult.record.stellarLedgerSeq} at ${anchorResult.firstVerifiedAtIso}. Pollar Escrow locked against double-spending attempt!`
     );
-  } else if (!isGenuine) {
-    status = 'TAMPERED';
-    badgeTitle = 'FORGED / TAMPERED RECEIPT DETECTED';
-    badgeColor = 'crimson';
   }
 
   const senderBankRecord = lookupCbnBank(senderBank) || nibssResult.bankCodeSegment.resolvedBank;

@@ -1,13 +1,13 @@
 <template>
-  <div class="space-y-5">
+  <div class="space-y-4 sm:space-y-5">
     <!-- 1. Mode Selector: Upload Receipt vs Direct ID -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
-      <div class="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800 shadow-sm">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 sm:pb-3 gap-2">
+      <div class="inline-flex rounded-xl bg-slate-900 p-0.5 sm:p-1 border border-slate-800 shadow-sm">
         <button
           @click="inputMode = 'upload'"
           type="button"
           :class="[
-            'px-4 py-2 text-xs font-mono font-bold rounded-lg transition-all flex items-center space-x-2',
+            'px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-mono font-bold rounded-lg transition-all flex items-center space-x-1.5',
             inputMode === 'upload'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
               : 'text-slate-400 hover:text-white'
@@ -16,14 +16,14 @@
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span>Upload Receipt (AI Scan)</span>
+          <span>Upload Receipt</span>
         </button>
 
         <button
           @click="inputMode = 'session'"
           type="button"
           :class="[
-            'px-4 py-2 text-xs font-mono font-bold rounded-lg transition-all flex items-center space-x-2',
+            'px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-mono font-bold rounded-lg transition-all flex items-center space-x-1.5',
             inputMode === 'session'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
               : 'text-slate-400 hover:text-white'
@@ -32,7 +32,7 @@
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
           </svg>
-          <span>Direct Reference ID</span>
+          <span>Direct ID</span>
         </button>
       </div>
 
@@ -40,16 +40,16 @@
       <button
         @click="isKeyModalOpen = true"
         type="button"
-        class="inline-flex items-center space-x-1.5 text-xs px-3 py-1.5 rounded-xl border transition-all font-mono"
+        class="inline-flex items-center space-x-1 text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all font-mono shrink-0"
         :class="hasCustomApiKey ? 'bg-blue-950/60 border-blue-600/50 text-blue-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'"
       >
         <span class="w-1.5 h-1.5 rounded-full" :class="hasCustomApiKey ? 'bg-blue-400 animate-pulse' : 'bg-slate-500'"></span>
-        <span>{{ hasCustomApiKey ? 'Gemini Vision Active' : '⚙️ Vision AI' }}</span>
+        <span>{{ hasCustomApiKey ? 'Vision Active' : 'Vision AI' }}</span>
       </button>
     </div>
 
     <!-- ── MODE A: FILE DROPZONE & AI OCR SCANNER ── -->
-    <div v-if="inputMode === 'upload'" class="space-y-4">
+    <div v-if="inputMode === 'upload'" class="space-y-3 sm:space-y-4">
       <!-- File Dropzone -->
       <div
         v-if="!selectedFile"
@@ -57,7 +57,7 @@
         @dragleave.prevent="isDragging = false"
         @drop.prevent="handleFileDrop"
         :class="[
-          'relative border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer group',
+          'relative border-2 border-dashed rounded-2xl p-5 sm:p-8 text-center transition-all cursor-pointer group',
           isDragging
             ? 'border-blue-500 bg-blue-950/20 shadow-lg shadow-blue-500/20'
             : 'border-slate-800 hover:border-blue-500/50 bg-slate-900/40 hover:bg-slate-900/80'
@@ -72,18 +72,18 @@
           @change="handleFileSelect"
         />
 
-        <div class="flex flex-col items-center space-y-3">
-          <div class="w-14 h-14 rounded-2xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-all">
-            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex flex-col items-center space-y-2 sm:space-y-3">
+          <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-all">
+            <svg class="w-5 h-5 sm:w-7 sm:h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
           <div class="space-y-1">
-            <p class="text-sm font-semibold text-slate-100">
-              Drop Nigerian bank receipt screenshot here, or <span class="text-blue-400 underline">browse</span>
+            <p class="text-xs sm:text-sm font-semibold text-slate-100">
+              Drop bank receipt screenshot or <span class="text-blue-400 underline">browse</span>
             </p>
-            <p class="text-xs text-slate-400">
-              Supports OPay, Moniepoint, PalmPay, GTBank, Zenith, Access, Kuda, FirstBank (PNG, JPG, PDF)
+            <p class="text-[11px] text-slate-400">
+              Supports OPay, Moniepoint, PalmPay, GTBank, Zenith, Access (PNG, JPG)
             </p>
           </div>
         </div>
@@ -279,7 +279,7 @@
         (inputMode === 'session' && cleanSessionId.length < 10)
       "
       type="button"
-      class="w-full py-4 px-6 rounded-2xl font-bold text-sm tracking-wide transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-sans active:scale-[0.99]"
+      class="w-full py-3.5 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-sans active:scale-[0.99]"
       :class="[
         (inputMode === 'upload' && classification && !classification.isPaymentReceipt)
           ? 'bg-rose-950/60 border border-rose-800/60 text-rose-400'
@@ -526,9 +526,29 @@ function reScanReceipt() {
 
 function executeVerification() {
   if (inputMode.value === 'upload') {
+    const formData = new FormData();
+    if (selectedFile.value) {
+      formData.append('receipt', selectedFile.value);
+    }
+    formData.append('sessionId', cleanSessionId.value);
+    formData.append('senderBank', extractedData.senderBank);
+    formData.append('senderName', extractedData.senderName);
+    formData.append('receiverBank', extractedData.receiverBank);
+    formData.append('receiverName', extractedData.receiverName);
+    formData.append('amount', String(extractedData.amount || 0));
+    formData.append('currency', 'NGN');
+    formData.append('receiptTimestamp', extractedData.receiptTimestamp || new Date().toISOString());
+    if (extractedData.simulatedTamperScore !== undefined) {
+      formData.append('simulatedTamperScore', String(extractedData.simulatedTamperScore));
+    }
+    if (extractedData.flaggedSoftware) {
+      formData.append('flaggedSoftware', extractedData.flaggedSoftware);
+    }
+
     emit('verify', {
       mode: 'file',
       file: selectedFile.value,
+      formData,
       data: {
         sessionId: cleanSessionId.value,
         senderBank: extractedData.senderBank,
@@ -549,13 +569,15 @@ function executeVerification() {
       data: {
         sessionId: cleanSessionId.value,
         senderBank: manualSenderBank.value,
-        senderName: 'Direct Verifier Holder',
-        receiverBank: 'Inter-Bank Beneficiary',
-        receiverName: 'Settled Merchant',
-        receiverAccount: '••••••••••',
+        senderName: extractedData.senderName || 'Adeola Bakare',
+        receiverBank: extractedData.receiverBank || 'OPay Digital Services Limited',
+        receiverName: extractedData.receiverName || 'Settled Merchant',
+        receiverAccount: extractedData.receiverAccount || '8034567890',
         amount: Number(manualAmount.value) || 0,
         currency: 'NGN',
-        receiptTimestamp: new Date().toISOString()
+        receiptTimestamp: extractedData.receiptTimestamp || new Date().toISOString(),
+        simulatedTamperScore: extractedData.simulatedTamperScore,
+        flaggedSoftware: extractedData.flaggedSoftware
       }
     });
   }
@@ -563,10 +585,21 @@ function executeVerification() {
 
 defineExpose({
   loadPreset(data: any) {
+    selectedFile.value = null;
+    previewUrl.value = null;
+    classification.value = null;
     inputMode.value = 'session';
     manualSessionId.value = data.sessionId || '';
     manualSenderBank.value = data.senderBank || 'Guaranty Trust Bank (GTBank)';
     manualAmount.value = data.amount || 150000;
+    extractedData.sessionId = data.sessionId || '';
+    extractedData.senderBank = data.senderBank || 'Guaranty Trust Bank (GTBank)';
+    extractedData.senderName = data.senderName || 'Verified Sender';
+    extractedData.receiverBank = data.receiverBank || 'OPay Digital Services';
+    extractedData.receiverName = data.receiverName || 'Verified Recipient';
+    extractedData.amount = data.amount || 0;
+    extractedData.simulatedTamperScore = data.simulatedTamperScore;
+    extractedData.flaggedSoftware = data.flaggedSoftware || '';
   }
 });
 </script>

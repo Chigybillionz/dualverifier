@@ -5,53 +5,48 @@
 
     <!-- 1-Click Test Scenarios Bar -->
     <DemoPresetBar
+      :activePresetId="currentActivePresetId"
       @select-preset="handleSelectPreset"
       @trigger-replay="handleTriggerReplay"
     />
 
     <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-8">
       <!-- Hero Banner & Segmented Mode Switcher -->
-      <div id="verifier-section" class="flex flex-col items-center text-center space-y-4 pb-6 border-b border-slate-800/80">
-        <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="text-slate-300">Dual-Rail Settlement Engine:</span>
-          <span class="text-blue-400 font-bold">NIBSS Banking + Pollar Stellar Escrow</span>
-        </div>
-
-        <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight font-sans">
+      <div id="verifier-section" class="flex flex-col items-center text-center space-y-2 pb-3 sm:pb-6 border-b border-slate-800/80">
+        <h1 class="text-xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight font-sans">
           Instant Payment Verification
         </h1>
 
-        <p class="text-sm sm:text-base text-slate-400 max-w-2xl leading-relaxed">
+        <p class="hidden sm:block text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
           Verify Nigerian bank receipts in seconds against fake-alert fraud, and automatically release trustless, gasless USDC escrows powered by Pollar.
         </p>
 
         <!-- Segmented Tab Switcher -->
-        <div class="pt-2">
+        <div class="pt-0.5 sm:pt-1">
           <ModeToggle v-model:mode="activeRail" />
         </div>
       </div>
 
       <!-- Main Dual-Column Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 items-start">
         <!-- LEFT COLUMN: Verifier Input Command Center (5 cols) -->
-        <div class="lg:col-span-5 space-y-6">
-          <div class="bg-[#0E1322] border border-slate-800/90 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div class="lg:col-span-5 space-y-4 sm:space-y-6">
+          <div class="bg-[#0E1322] border border-slate-800/90 rounded-2xl p-3.5 sm:p-6 shadow-xl relative overflow-hidden">
             <!-- Accent Top Line in Blue / Emerald -->
             <div
               class="absolute top-0 left-0 right-0 h-1 transition-all duration-300"
               :class="activeRail === 'LOCAL_BANK' ? 'bg-gradient-to-r from-blue-500 to-emerald-400' : 'bg-gradient-to-r from-blue-500 via-indigo-400 to-cyan-400'"
             ></div>
 
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-3 sm:mb-4">
               <div class="flex items-center space-x-2">
                 <span
                   class="w-2.5 h-2.5 rounded-full animate-pulse"
                   :class="activeRail === 'LOCAL_BANK' ? 'bg-emerald-400' : 'bg-blue-400'"
                 ></span>
-                <h3 class="text-sm font-bold uppercase tracking-wider font-mono text-white">
-                  {{ activeRail === 'LOCAL_BANK' ? 'Rail 1: Bank Receipt Verifier' : 'Rail 2: Pollar Stellar Explorer' }}
+                <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider font-mono text-white">
+                  {{ activeRail === 'LOCAL_BANK' ? 'Bank Receipt Verifier' : 'Pollar Stellar Explorer' }}
                 </h3>
               </div>
 
@@ -61,7 +56,7 @@
                 @click="isReceiptModalOpen = true"
                 class="text-xs text-blue-400 hover:underline font-mono flex items-center gap-1"
               >
-                <span>View Receipt</span>
+                <span>Receipt</span>
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -87,8 +82,8 @@
             />
           </div>
 
-          <!-- Pollar Gasless Protocol Explainer Card -->
-          <div id="privacy-protocol" class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-2">
+          <!-- Pollar Gasless Protocol Explainer Card (Hidden on mobile to save vertical space) -->
+          <div id="privacy-protocol" class="hidden lg:block p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-2">
             <div class="font-bold text-slate-200 flex items-center justify-between font-mono">
               <span class="text-blue-400">Pollar Smart Escrow</span>
               <span class="text-[10px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">Gasless • Stellar</span>
@@ -100,7 +95,7 @@
         </div>
 
         <!-- RIGHT COLUMN: The Hero Blue Verification Card (7 cols) -->
-        <div class="lg:col-span-7 space-y-6">
+        <div id="verification-result" class="lg:col-span-7 space-y-4 sm:space-y-6">
           <div v-if="activeBlueCard">
             <BlueVerificationCard
               :card="activeBlueCard"
@@ -111,23 +106,23 @@
           <!-- Empty State / Standby Screen -->
           <div
             v-else
-            class="rounded-2xl border border-slate-800/90 bg-[#0E1322] p-12 text-center flex flex-col items-center justify-center space-y-4 shadow-xl"
+            class="rounded-2xl border border-slate-800/90 bg-[#0E1322] p-5 sm:p-12 text-center flex flex-col items-center justify-center space-y-3 shadow-xl"
           >
-            <div class="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-inner">
-              <svg class="w-8 h-8 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-inner">
+              <svg class="w-5 h-5 sm:w-7 sm:h-7 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             <div class="max-w-sm space-y-1">
-              <h3 class="text-base font-bold text-white">Forensic Verifier Standby</h3>
-              <p class="text-xs text-slate-400 leading-relaxed">
-                Upload a Nigerian bank receipt, enter a transaction reference number, or click a demo scenario to see instant verification.
+              <h3 class="text-xs sm:text-base font-bold text-white">Verification Result Standby</h3>
+              <p class="text-[11px] sm:text-xs text-slate-400 leading-relaxed">
+                Upload a receipt on the left, or tap a test scenario above to see instant verification.
               </p>
             </div>
-            <div class="pt-2">
+            <div class="pt-1">
               <button
                 @click="handleSelectPreset('demo-1-valid-gtb-150k')"
-                class="px-5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-500/20 active:scale-95"
+                class="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-500/20 active:scale-95"
               >
                 Try Demo: Valid GTBank ₦150k
               </button>
@@ -137,28 +132,41 @@
       </div>
 
       <!-- MODULE 4: LIVE VERIFICATION AUDIT LEDGER TABLE AT BOTTOM OF PAGE -->
-      <section id="audit-ledger" class="pt-6 border-t border-slate-800/80">
-        <VerificationHistoryDrawer
-          :items="auditHistoryItems"
-          @select-history-item="handleSelectHistoryItem"
-        />
+      <section id="audit-ledger" class="pt-2 sm:pt-4 border-t border-slate-800/80">
+        <details class="group rounded-2xl bg-[#0E1322] border border-slate-800 p-3 sm:p-4">
+          <summary class="cursor-pointer font-bold text-xs uppercase tracking-wider text-slate-300 hover:text-white flex items-center justify-between list-none">
+            <span class="flex items-center gap-2">
+              <span>📜 Live Verification Claims Ledger</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                {{ auditHistoryItems.length }}
+              </span>
+            </span>
+            <span class="text-slate-500 text-xs transition-transform group-open:rotate-180">▼</span>
+          </summary>
+          <div class="mt-4">
+            <VerificationHistoryDrawer
+              :items="auditHistoryItems"
+              @select-history-item="handleSelectHistoryItem"
+            />
+          </div>
+        </details>
       </section>
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-slate-800 bg-slate-950 py-6 text-xs text-slate-500 mt-12">
+    <footer class="border-t border-slate-800 bg-slate-950 py-6 text-xs text-slate-500 mt-8">
       <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="flex items-center space-x-2">
           <span>DualVerifier • Built for BlockchainUNN Hackathon</span>
           <span>•</span>
-          <span class="text-blue-400">Track: Intelligence: AI & Web3 Without Borders</span>
+          <span class="text-blue-400">Intelligence: AI & Web3 Without Borders</span>
         </div>
         <div class="flex items-center space-x-4 font-mono text-[11px]">
-          <span>Zcash Shielded Orchard & Sapling</span>
+          <span>Pollar SDK (@pollar/core)</span>
           <span>•</span>
-          <span>Gemini 1.5 Flash Vision</span>
+          <span>Stellar Testnet</span>
           <span>•</span>
-          <span>30-Digit NIBSS Math</span>
+          <span>Gemini 1.5 Flash</span>
         </div>
       </div>
     </footer>
@@ -171,19 +179,19 @@
       @trigger-replay-from-modal="handleTriggerReplay"
     />
 
-    <!-- Shielded Memos Ledger Slide-Over Drawer -->
+    <!-- Pollar Stellar Escrow Ledger Slide-Over Drawer -->
     <div v-if="isLedgerOpen" class="fixed inset-0 z-50 overflow-hidden">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="isLedgerOpen = false"></div>
-      <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div class="w-screen max-w-md bg-slate-900 border-l border-slate-800 p-6 flex flex-col shadow-2xl space-y-5">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+      <div class="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
+        <div class="w-screen max-w-md bg-slate-900 border-l border-slate-800 p-5 sm:p-6 flex flex-col shadow-2xl space-y-4 sm:space-y-5">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3 sm:pb-4">
             <div class="flex items-center space-x-2.5">
               <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
                 🛡️
               </div>
               <div>
-                <h3 class="text-sm font-bold text-white">Zcash Shielded Memo Ledger</h3>
-                <p class="text-[11px] text-slate-400 font-mono">ZIP-302 Encrypted 512-Byte Anti-Replay Attestations</p>
+                <h3 class="text-sm font-bold text-white">Pollar Stellar Claims Ledger</h3>
+                <p class="text-[11px] text-slate-400 font-mono">Decentralized Gasless Escrows & Anti-Double-Spend Registry</p>
               </div>
             </div>
             <button @click="isLedgerOpen = false" class="text-slate-400 hover:text-white p-1">✕</button>
@@ -191,7 +199,7 @@
 
           <div class="grid grid-cols-2 gap-3 text-xs">
             <div class="p-3 rounded-xl bg-slate-850 border border-slate-800">
-              <span class="text-slate-400 block text-[10px] uppercase font-mono">Anchored Memos</span>
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Anchored Escrows</span>
               <span class="text-xl font-bold text-blue-400 font-mono">{{ shieldedMemos.length }}</span>
             </div>
             <div class="p-3 rounded-xl bg-slate-850 border border-slate-800">
@@ -202,7 +210,7 @@
 
           <div class="flex-1 overflow-y-auto space-y-3 pr-1">
             <div v-if="shieldedMemos.length === 0" class="text-center py-12 text-slate-500 text-xs">
-              No shielded memos anchored yet. Verify a bank receipt to anchor the first proof!
+              No escrows anchored yet. Verify a bank receipt to anchor the first proof!
             </div>
             <div
               v-for="(rec, idx) in shieldedMemos"
@@ -211,7 +219,7 @@
             >
               <div class="flex items-center justify-between">
                 <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-800">
-                  Block #{{ rec.zcashBlockHeight }} • {{ rec.zcashPool }}
+                  Ledger #{{ rec.stellarLedgerSeq || rec.zcashBlockHeight }} • {{ rec.stellarNetwork || rec.zcashPool || 'Stellar Testnet' }}
                 </span>
                 <span
                   class="text-[10px] font-mono px-2 py-0.5 rounded"
@@ -223,11 +231,11 @@
               <p class="font-mono text-slate-200 text-xs font-semibold truncate">{{ rec.sender }} ➔ {{ rec.receiver }}</p>
               <p class="font-mono text-emerald-400 font-bold text-xs">₦{{ Number(rec.amount).toLocaleString() }}</p>
               <div class="p-2 rounded bg-slate-900 border border-slate-800 font-mono text-[11px] text-slate-400 break-words">
-                {{ rec.memoUtf8 }}
+                {{ rec.stellarMemoText || rec.memoUtf8 || rec.proofHash }}
               </div>
               <div class="flex items-center justify-between pt-1 border-t border-slate-800 text-[10px]">
-                <a :href="`https://blockchair.com/zcash/transaction/${rec.zcashAnchorTxId}`" target="_blank" class="text-blue-400 hover:underline">
-                  View Zcash TxID ➔
+                <a :href="rec.explorerUrl || `https://stellar.expert/explorer/testnet/tx/${rec.stellarTxHash}`" target="_blank" class="text-blue-400 hover:underline">
+                  View Stellar TxID ➔
                 </a>
                 <button @click="handleResetRecord(rec.proofHash)" class="text-slate-500 hover:text-rose-400">
                   Reset Demo
@@ -265,6 +273,7 @@ import { apiUrl } from './utils/api';
 import { MOCK_DEMO_PRESETS } from './data/mockDemoPresets';
 
 const activeRail = ref<'LOCAL_BANK' | 'POLLAR_STELLAR' | 'ZCASH'>('LOCAL_BANK');
+const currentActivePresetId = ref<string | null>(null);
 const isLoading = ref(false);
 const isLedgerOpen = ref(false);
 const isReceiptModalOpen = ref(false);
@@ -428,6 +437,14 @@ function mirrorHashToLocalStorage(proofHash: string, metadata: any) {
 
 async function fetchShieldedMemos() {
   try {
+    const res = await fetch(apiUrl('/api/pollar/escrows'));
+    const json = await res.json();
+    if (json.success && json.records) {
+      shieldedMemos.value = json.records;
+      return;
+    }
+  } catch (err) {}
+  try {
     const res = await fetch(apiUrl('/api/zcash/memos'));
     const json = await res.json();
     if (json.success && json.records) {
@@ -520,6 +537,9 @@ function appendToAuditHistory(card: any) {
 }
 
 async function handleVerifyLocal(payload: any) {
+  if (payload.mode === 'file') {
+    currentActivePresetId.value = null;
+  }
   isLoading.value = true;
   try {
     let res: Response;
@@ -601,17 +621,20 @@ async function handleVerifyZcash(payload: any) {
 }
 
 function handleSelectPreset(presetId: string) {
+  currentActivePresetId.value = presetId;
   const p = demoPresets.find(item => item.id === presetId);
   if (p) {
     currentPresetVisual.value = p.receiptVisual || null;
     if (p.rail === 'LOCAL_BANK') {
       activeRail.value = 'LOCAL_BANK';
+      localVerifierRef.value?.loadPreset?.(p.payload);
       handleVerifyLocal({
         mode: 'json',
         data: p.payload
       });
     } else if (p.rail === 'POLLAR_STELLAR') {
       activeRail.value = 'POLLAR_STELLAR';
+      pollarVerifierRef.value?.loadPreset?.(p.payload);
       handleVerifyPollar(p.payload);
     } else {
       activeRail.value = 'ZCASH';
@@ -623,56 +646,7 @@ function handleSelectPreset(presetId: string) {
   // Fallback if presets endpoint not yet cached
   if (presetId === 'demo-1-valid-gtb-150k' || presetId === 'preset-valid-gtb-opay') {
     activeRail.value = 'LOCAL_BANK';
-    handleVerifyLocal({
-      mode: 'json',
-      data: {
-        sessionId: '000013260315143022100004998231',
-        senderBank: 'Guaranty Trust Bank (GTBank)',
-        senderName: 'Chibuike Okonkwo',
-        receiverBank: 'OPay Digital Services Limited',
-        receiverName: 'Lekki Gadget Depot Ltd',
-        receiverAccount: '9012345678',
-        amount: 150000,
-        currency: 'NGN',
-        receiptTimestamp: '2026-03-15T14:30:22+01:00',
-        claimantMerchant: 'Lekki Gadget Depot Ltd'
-      }
-    });
-  } else if (presetId === 'demo-2-fake-opay-alert' || presetId === 'preset-forged-fake-alert') {
-    activeRail.value = 'LOCAL_BANK';
-    handleVerifyLocal({
-      mode: 'json',
-      data: {
-        sessionId: '000014240101000000111111111111',
-        senderBank: 'Guaranty Trust Bank (GTBank)',
-        senderName: 'Adeola Bakare (Spoofed)',
-        receiverBank: 'OPay Digital Services Limited',
-        receiverName: 'Emmanuel Chukwuma (Store Owner)',
-        receiverAccount: '8034567890',
-        amount: 85000,
-        currency: 'NGN',
-        receiptTimestamp: '2026-11-04T14:30:00+01:00',
-        simulatedTamperScore: 24,
-        flaggedSoftware: 'CANVA / FAKE ALERT APK GENERATOR'
-      }
-    });
-  } else if (presetId === 'demo-3-pollar-stellar-settlement' || presetId === 'demo-3-zcash-shielded-u1') {
-    activeRail.value = 'POLLAR_STELLAR';
-    handleVerifyPollar({
-      txid: 'a8f5b3c2d1e09f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e',
-      walletAddress: 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
-      sessionId: '000013260315143022100004998231'
-    });
-  } else if (presetId === 'demo-4-reused-receipt-replay') {
-    handleTriggerReplay();
-  }
-}
-
-function handleTriggerReplay() {
-  activeRail.value = 'LOCAL_BANK';
-  handleVerifyLocal({
-    mode: 'json',
-    data: {
+    const payload = {
       sessionId: '000013260315143022100004998231',
       senderBank: 'Guaranty Trust Bank (GTBank)',
       senderName: 'Chibuike Okonkwo',
@@ -682,8 +656,66 @@ function handleTriggerReplay() {
       amount: 150000,
       currency: 'NGN',
       receiptTimestamp: '2026-03-15T14:30:22+01:00',
-      claimantMerchant: 'Victoria Island Branch (Replay Attempt)'
-    }
+      claimantMerchant: 'Lekki Gadget Depot Ltd'
+    };
+    localVerifierRef.value?.loadPreset?.(payload);
+    handleVerifyLocal({
+      mode: 'json',
+      data: payload
+    });
+  } else if (presetId === 'demo-2-fake-opay-alert' || presetId === 'preset-forged-fake-alert') {
+    activeRail.value = 'LOCAL_BANK';
+    const payload = {
+      sessionId: '000014240101000000111111111111',
+      senderBank: 'Guaranty Trust Bank (GTBank)',
+      senderName: 'Adeola Bakare (Spoofed)',
+      receiverBank: 'OPay Digital Services Limited',
+      receiverName: 'Emmanuel Chukwuma (Store Owner)',
+      receiverAccount: '8034567890',
+      amount: 85000,
+      currency: 'NGN',
+      receiptTimestamp: '2026-11-04T14:30:00+01:00',
+      simulatedTamperScore: 24,
+      flaggedSoftware: 'CANVA / FAKE ALERT APK GENERATOR'
+    };
+    localVerifierRef.value?.loadPreset?.(payload);
+    handleVerifyLocal({
+      mode: 'json',
+      data: payload
+    });
+  } else if (presetId === 'demo-3-pollar-stellar-settlement' || presetId === 'demo-3-zcash-shielded-u1') {
+    activeRail.value = 'POLLAR_STELLAR';
+    const payload = {
+      txid: 'a8f5b3c2d1e09f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e',
+      walletAddress: 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+      sessionId: '000013260315143022100004998231'
+    };
+    pollarVerifierRef.value?.loadPreset?.(payload);
+    handleVerifyPollar(payload);
+  } else if (presetId === 'demo-4-reused-receipt-replay') {
+    handleTriggerReplay();
+  }
+}
+
+function handleTriggerReplay() {
+  currentActivePresetId.value = 'demo-4-reused-receipt-replay';
+  activeRail.value = 'LOCAL_BANK';
+  const replayPayload = {
+    sessionId: '000013260315143022100004998231',
+    senderBank: 'Guaranty Trust Bank (GTBank)',
+    senderName: 'Chibuike Okonkwo',
+    receiverBank: 'OPay Digital Services Limited',
+    receiverName: 'Lekki Gadget Depot Ltd',
+    receiverAccount: '9012345678',
+    amount: 150000,
+    currency: 'NGN',
+    receiptTimestamp: '2026-03-15T14:30:22+01:00',
+    claimantMerchant: 'Victoria Island Branch (Replay Attempt)'
+  };
+  localVerifierRef.value?.loadPreset?.(replayPayload);
+  handleVerifyLocal({
+    mode: 'json',
+    data: replayPayload
   });
 }
 
