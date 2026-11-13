@@ -324,6 +324,81 @@ export function decodeNibssSessionId(
 }
 
 /**
+ * Robust monetary amount extractor for Nigerian banking receipts.
+ */
+export function extractAmountRobust(text: string): number {
+  if (!text) return 0;
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+  // Strategy 1: Explicit labels on same line or next 1-2 lines
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/(?:Transaction\s*(?:No|Number|ID|Ref|N)|Session\s*ID|Reference|Account\s*No)/i.test(line)) {
+      continue;
+    }
+
+    if (/(?:Amount|Total|Amt|Transfer Amount|Transaction Amount|Debit|Paid|Sum)/i.test(line)) {
+      const sameLineMatch = line.match(/(?:[₦Nn#=~*\-]|NGN|\$)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?|[0-9]{3,8}(?:\.[0-9]{2})?)/i);
+      if (sameLineMatch && sameLineMatch[1]) {
+        const val = parseFloat(sameLineMatch[1].replace(/,/g, ''));
+        if (!isNaN(val) && val >= 10 && val < 1000000000) return val;
+      }
+      for (let j = 1; j <= 2 && i + j < lines.length; j++) {
+        const nextLine = lines[i + j];
+        if (/(?:Transaction\s*(?:No|Number|ID|Ref|N)|Session\s*ID|Reference|Account\s*No)/i.test(nextLine)) continue;
+        const nextMatch = nextLine.match(/(?:[₦Nn#=~*\-]|NGN|\$)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?|[0-9]{3,8}(?:\.[0-9]{2})?)/i);
+        if (nextMatch && nextMatch[1]) {
+          const val = parseFloat(nextMatch[1].replace(/,/g, ''));
+          if (!isNaN(val) && val >= 10 && val < 1000000000) return val;
+        }
+      }
+    }
+  }
+
+  // Strategy 2: Preceded by currency prefix or common OCR-corrupted symbols (₦, NGN, $, ee, =, -, #, *, ~)
+  const currencyMatches = [...text.matchAll(/(?:₦|NGN|\$|\bee\b|[-=#*~])\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{2})?|[0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,8}(?:\.[0-9]{2}))(?![0-9])/gi)];
+  const candidates: number[] = [];
+  for (const m of currencyMatches) {
+    const val = parseFloat(m[1].replace(/,/g, ''));
+    if (!isNaN(val) && val >= 50 && val < 1000000000) {
+      candidates.push(val);
+    }
+  }
+  if (candidates.length > 0) {
+    const bigCandidates = candidates.filter(v => v >= 100);
+    return bigCandidates.length > 0 ? Math.max(...bigCandidates) : Math.max(...candidates);
+  }
+
+  // Strategy 3: Standard comma-formatted monetary amounts (e.g. 150,000.00 or 8,000)
+  const commaMatches = [...text.matchAll(/(?<![0-9])([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{2})?)(?![0-9])/g)];
+  for (const m of commaMatches) {
+    const val = parseFloat(m[1].replace(/,/g, ''));
+    if (!isNaN(val) && val >= 50 && val < 1000000000) {
+      candidates.push(val);
+    }
+  }
+  if (candidates.length > 0) {
+    const bigCandidates = candidates.filter(v => v >= 100);
+    return bigCandidates.length > 0 ? Math.max(...bigCandidates) : Math.max(...candidates);
+  }
+
+  // Strategy 4: Decimal formatted monetary amounts (e.g. 8000.00 or 150000.00)
+  const decMatches = [...text.matchAll(/(?<![0-9])([0-9]{3,8}\.[0-9]{2})(?![0-9])/g)];
+  for (const m of decMatches) {
+    const val = parseFloat(m[1]);
+    if (!isNaN(val) && val >= 50 && val < 1000000000) {
+      candidates.push(val);
+    }
+  }
+  if (candidates.length > 0) {
+    const bigCandidates = candidates.filter(v => v >= 100);
+    return bigCandidates.length > 0 ? Math.max(...bigCandidates) : Math.max(...candidates);
+  }
+
+  return 0;
+}
+
+/**
  * Gemini Flash Vision OCR extraction & heuristic fallback
  */
 export async function extractReceiptFromImage(
@@ -402,15 +477,15 @@ export async function extractReceiptFromImage(
     || rawString.match(/\b([0-9]{30})\b/)
     || rawString.match(/\b([0-9]{20,29})\b/);
 
-  // Try extracting amount
-  const amountMatch = rawString.match(/(?:Amount|Total|Amt|₦|NGN)[:\s]*([0-9,]+(?:\.[0-9]{2})?)/i);
+  // Try extracting amount using robust multi-strategy extractor
+  const robustAmount = extractAmountRobust(rawString);
 
   // Try detecting bank name
   const bankMatch = rawString.match(/(OPay|Moniepoint|PalmPay|Kuda|GTBank|Guaranty Trust|Access Bank|Zenith Bank|FirstBank|First Bank|UBA|United Bank|Wema|ALAT|FCMB|Stanbic|Sterling|Union Bank|Polaris)/i);
 
   if (sessionMatch && sessionMatch[1]) {
     const rawDigits = sessionMatch[1].replace(/[^0-9]/g, '');
-    const cleanAmt = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 50000;
+    const cleanAmt = robustAmount > 0 ? robustAmount : 0;
     const detectedBank = bankMatch ? bankMatch[1] : 'Nigerian Commercial Bank';
 
     return {
@@ -419,7 +494,7 @@ export async function extractReceiptFromImage(
       receiverName: 'Settled Merchant',
       receiverBank: 'Inter-Bank Beneficiary',
       receiverAccount: '••••••••••',
-      amount: isNaN(cleanAmt) ? 50000 : cleanAmt,
+      amount: cleanAmt,
       currency: 'NGN',
       sessionId: rawDigits,
       receiptTimestamp: new Date().toISOString(),

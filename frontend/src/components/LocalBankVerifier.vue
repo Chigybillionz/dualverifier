@@ -162,16 +162,35 @@
           </div>
         </div>
 
-        <!-- Clean Extracted Overview (Gestalt Proximity) -->
+        <!-- Clean Extracted Overview (Gestalt Proximity & Direct Manipulation) -->
         <div class="grid grid-cols-2 gap-3 text-xs">
-          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
-            <span class="text-[10px] text-slate-500 block uppercase font-mono">Amount</span>
-            <span class="text-base font-extrabold text-white">₦{{ Number(extractedData.amount || 0).toLocaleString() }}</span>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/50 transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 block uppercase font-mono">Amount (₦)</span>
+              <span class="text-[9px] text-blue-400 font-mono">Editable ✏️</span>
+            </div>
+            <div class="flex items-center mt-1">
+              <span class="text-base font-extrabold text-white mr-1 font-mono">₦</span>
+              <input
+                v-model.number="extractedData.amount"
+                type="number"
+                class="bg-transparent text-base font-extrabold text-white w-full outline-none font-mono focus:text-blue-300"
+                placeholder="0"
+              />
+            </div>
           </div>
 
-          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
-            <span class="text-[10px] text-slate-500 block uppercase font-mono">Reference ID</span>
-            <span class="text-xs font-mono font-bold text-emerald-400 truncate block">{{ extractedData.sessionId || 'Pending' }}</span>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500/50 transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 block uppercase font-mono">Reference / Session ID</span>
+              <span class="text-[9px] text-emerald-400 font-mono">Editable ✏️</span>
+            </div>
+            <input
+              v-model="extractedData.sessionId"
+              type="text"
+              class="bg-transparent text-xs font-mono font-bold text-emerald-400 w-full outline-none mt-1 truncate focus:text-white"
+              placeholder="Session ID (30 digits)"
+            />
           </div>
 
           <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
@@ -494,7 +513,9 @@ async function processFile(file: File) {
     });
 
     if (ocrResult.sessionId) extractedData.sessionId = ocrResult.sessionId;
-    if (ocrResult.amount) extractedData.amount = ocrResult.amount;
+    if (ocrResult.amount !== undefined && ocrResult.amount !== null && ocrResult.amount > 0) {
+      extractedData.amount = ocrResult.amount;
+    }
     if (ocrResult.senderName) extractedData.senderName = ocrResult.senderName;
     if (ocrResult.senderBank) extractedData.senderBank = ocrResult.senderBank;
     if (ocrResult.receiverName) extractedData.receiverName = ocrResult.receiverName;
