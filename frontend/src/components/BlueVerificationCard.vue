@@ -78,7 +78,7 @@
                 ? '✓ 100% Genuine Payment Verified'
                 : card.status === 'DUPLICATE'
                 ? '⚠️ Duplicate Receipt Replay Blocked'
-                : '🚨 Fake / Manipulated Alert Detected'
+                : (card.badgeTitle ? `🚨 ${card.badgeTitle}` : '🚨 Fake / Manipulated Alert Detected')
             }}
           </h2>
         </div>

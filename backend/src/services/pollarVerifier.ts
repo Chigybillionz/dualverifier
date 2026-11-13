@@ -133,11 +133,12 @@ async function queryHorizonTransaction(txHash: string): Promise<LiveStellarTxDet
         if (opsRes.ok) {
           const opsData = (await opsRes.json()) as any;
           for (const op of opsData._embedded.records) {
-            if (op.amount && Number(op.amount) > 0) {
-              amount = Number(op.amount);
+            const rawAmt = op.amount || op.starting_balance || op.dest_amount;
+            if (rawAmt && Number(rawAmt) > 0) {
+              amount = Number(rawAmt);
               asset = op.asset_code || (op.asset_type === 'native' ? 'XLM' : 'USDC');
               if (op.from) from = op.from;
-              if (op.to) to = op.to;
+              if (op.to) to = op.to || op.into || op.funder || to;
               break;
             }
           }
@@ -151,8 +152,9 @@ async function queryHorizonTransaction(txHash: string): Promise<LiveStellarTxDet
           if (effRes.ok) {
             const effData = (await effRes.json()) as any;
             for (const eff of effData._embedded.records) {
-              if (eff.amount && Number(eff.amount) > 0) {
-                amount = Number(eff.amount);
+              const rawAmt = eff.amount || eff.starting_balance;
+              if (rawAmt && Number(rawAmt) > 0) {
+                amount = Number(rawAmt);
                 asset = eff.asset_code || (eff.asset_type === 'native' ? 'XLM' : 'USDC');
                 if (eff.account) to = eff.account;
                 break;
@@ -196,30 +198,300 @@ export class PollarVerifier {
     sessionId?: string;
   }): Promise<PollarVerificationOutput> {
     const { txHash, walletAddress, sessionId } = params;
+    const cleanTx = (txHash || '').trim().replace(/^0x/, '');
 
-    // 1. Query live on-chain Stellar Horizon if a custom hash was supplied
-    let liveTx: LiveStellarTxDetails | null = null;
-    if (txHash && txHash.length >= 32) {
-      liveTx = await queryHorizonTransaction(txHash);
+    // 1. Identify built-in demo vectors (for offline hackathon test vectors)
+    const isDemoAuthentic = cleanTx.toLowerCase() === 'a8f5b3c2d1e09f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e';
+    const isDemoReplay = cleanTx.toLowerCase().includes('c3d4e5f6');
+    const isBuiltInDemo = isDemoAuthentic || isDemoReplay;
+
+    // 2. Syntax validation for custom hashes
+    const isValidHex64 = /^[0-9a-fA-F]{64}$/.test(cleanTx);
+
+    // If custom hash is malformed (invalid hex characters or incorrect length)
+    if (!isBuiltInDemo && cleanTx && !isValidHex64) {
+      const proofHash = `0x${crypto.createHash('sha256').update(cleanTx).digest('hex')}`;
+      return {
+        rail: 'POLLAR_STELLAR',
+        status: 'INVALID',
+        badgeTitle: 'MALFORMED STELLAR TX HASH',
+        badgeColor: 'crimson',
+        timestamp: new Date().toISOString(),
+        proofHash,
+        txHash: cleanTx,
+        ledgerSeq: 0,
+        network: 'testnet',
+        explorerUrl: `https://stellar.expert/explorer/testnet/tx/${cleanTx}`,
+        pollarSmartWallet: {
+          address: walletAddress || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+          accountType: 'POLLAR_EMBEDDED_SMART_WALLET',
+          gaslessActive: false,
+          sponsoredBy: 'Pollar Paymaster (SEP-0043)'
+        },
+        settlement: {
+          asset: 'USDC',
+          amount: '0.00',
+          ngnEquivalent: '₦0.00',
+          status: 'LOCKED',
+          memoText: 'INVALID_SYNTAX'
+        },
+        pollarAnchor: {
+          proofHash,
+          stellarTxHash: cleanTx,
+          stellarLedgerSeq: 0,
+          stellarNetwork: 'testnet',
+          explorerUrl: `https://stellar.expert/explorer/testnet/tx/${cleanTx}`,
+          merchantPollarWallet: walletAddress || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+          payoutAsset: 'USDC',
+          payoutAmount: '0.00',
+          gaslessSponsored: false,
+          sponsorFee: '0.00000 XLM',
+          stellarMemoText: 'INVALID_SYNTAX'
+        },
+        routingPipeline: {
+          sender: {
+            title: 'Buyer / Payer (Nigerian Fiat Rail)',
+            identifier: 'Invalid Signer',
+            institution: 'Malformed Stellar Hash',
+            bankLogoColor: '#ef4444',
+            verified: false
+          },
+          rail: {
+            type: 'Pollar Stellar Rail (Syntax Error)',
+            identifier: `Invalid Length: ${cleanTx.length} chars (Requires 64 hex characters)`,
+            timestamp: new Date().toISOString(),
+            protocol: 'Pollar SDK (@pollar/core) + Stellar Paymaster',
+            verified: false
+          },
+          receiver: {
+            title: 'Merchant Pollar Smart Account',
+            identifier: walletAddress || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+            institution: 'Pollar Smart Account',
+            bankLogoColor: '#ef4444',
+            amountFormatted: '₦0.00',
+            currency: 'NGN',
+            multiCurrency: {
+              ngn: '₦0.00 NGN',
+              usd: '$0.00 USD',
+              usdc: '0.00 USDC (Stellar)'
+            },
+            verified: false
+          }
+        },
+        forensics: {
+          flags: [
+            `Malformed Transaction Hash: Expected 64 hexadecimal characters, but got ${cleanTx.length} characters with non-hex characters.`,
+            'Integrity Rejection: Pollar Escrow locked. Verification aborted.'
+          ]
+        },
+        metadata: {
+          error: 'MALFORMED_HASH',
+          txHash: cleanTx
+        },
+        notes: [
+          'Error: Stellar transaction hashes must be strictly 64 hexadecimal characters (32 bytes).',
+          'Pollar Escrow Action: Zero funds disbursed. Escrow remains locked.'
+        ]
+      };
     }
 
-    // 2. Check if we have an existing anchored record in the Pollar registry
+    // 3. Query live on-chain Stellar Horizon for custom valid 64-char hashes
+    let liveTx: LiveStellarTxDetails | null = null;
+    if (!isBuiltInDemo && isValidHex64) {
+      liveTx = await queryHorizonTransaction(cleanTx);
+
+      // If queried against Horizon (both testnet & public) and NOT FOUND:
+      if (!liveTx || !liveTx.found) {
+        const proofHash = `0x${crypto.createHash('sha256').update(cleanTx).digest('hex')}`;
+        return {
+          rail: 'POLLAR_STELLAR',
+          status: 'TAMPERED',
+          badgeTitle: 'TRANSACTION NOT FOUND ON STELLAR HORIZON',
+          badgeColor: 'crimson',
+          timestamp: new Date().toISOString(),
+          proofHash,
+          txHash: cleanTx,
+          ledgerSeq: 0,
+          network: 'testnet',
+          explorerUrl: `https://stellar.expert/explorer/testnet/tx/${cleanTx}`,
+          pollarSmartWallet: {
+            address: walletAddress || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+            accountType: 'POLLAR_EMBEDDED_SMART_WALLET',
+            gaslessActive: false,
+            sponsoredBy: 'Pollar Paymaster (SEP-0043)'
+          },
+          settlement: {
+            asset: 'USDC',
+            amount: '0.00',
+            ngnEquivalent: '₦0.00',
+            status: 'LOCKED',
+            memoText: '404_NOT_FOUND'
+          },
+          pollarAnchor: {
+            proofHash,
+            stellarTxHash: cleanTx,
+            stellarLedgerSeq: 0,
+            stellarNetwork: 'testnet',
+            explorerUrl: `https://stellar.expert/explorer/testnet/tx/${cleanTx}`,
+            merchantPollarWallet: walletAddress || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+            payoutAsset: 'USDC',
+            payoutAmount: '0.00',
+            gaslessSponsored: false,
+            sponsorFee: '0.00000 XLM',
+            stellarMemoText: 'NOT_FOUND_ON_CHAIN'
+          },
+          routingPipeline: {
+            sender: {
+              title: 'Buyer / Payer (Nigerian Fiat Rail)',
+              identifier: 'Non-Existent Sender',
+              institution: 'No Ledger Record',
+              bankLogoColor: '#ef4444',
+              verified: false
+            },
+            rail: {
+              type: 'Pollar Stellar Rail (Horizon 404)',
+              identifier: `No On-Chain Transaction Found (${cleanTx.slice(0, 16)}...)`,
+              timestamp: new Date().toISOString(),
+              protocol: 'Pollar SDK (@pollar/core) + Stellar Horizon RPC',
+              verified: false
+            },
+            receiver: {
+              title: 'Merchant Pollar Smart Account',
+              identifier: walletAddress || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+              institution: 'Pollar Smart Account',
+              bankLogoColor: '#ef4444',
+              amountFormatted: '₦0.00',
+              currency: 'NGN',
+              multiCurrency: {
+                ngn: '₦0.00 NGN',
+                usd: '$0.00 USD',
+                usdc: '0.00 USDC (Stellar)'
+              },
+              verified: false
+            }
+          },
+          forensics: {
+            flags: [
+              `Cryptographic Proof Missing: Transaction hash [${cleanTx}] was queried against Stellar Horizon RPC (Testnet & Public Mainnet) but returned 404 (Not Found).`,
+              'Fraud / Tamper Alert: Altered, manipulated, or simulated transaction hash detected.',
+              'Pollar Escrow Action: Settlement aborted. Zero funds disbursed to recipient.'
+            ]
+          },
+          metadata: {
+            error: 'TRANSACTION_NOT_FOUND',
+            txHash: cleanTx
+          },
+          notes: [
+            `Stellar Horizon RPC (horizon-testnet.stellar.org & horizon.stellar.org): Hash returned 404 Not Found.`,
+            'Integrity check failed: Transaction has never been broadcast or confirmed on the Stellar network.',
+            'Pollar Escrow protection active: Merchant funds remain securely locked.'
+          ]
+        };
+      }
+
+      // If found on-chain, but transaction was REVERTED / FAILED:
+      if (!liveTx.successful) {
+        const proofHash = `0x${crypto.createHash('sha256').update(cleanTx).digest('hex')}`;
+        return {
+          rail: 'POLLAR_STELLAR',
+          status: 'TAMPERED',
+          badgeTitle: 'STELLAR TRANSACTION FAILED ON-CHAIN',
+          badgeColor: 'crimson',
+          timestamp: liveTx.createdAt,
+          proofHash,
+          txHash: cleanTx,
+          ledgerSeq: liveTx.ledger,
+          network: liveTx.network,
+          explorerUrl: `https://stellar.expert/explorer/${liveTx.network}/tx/${cleanTx}`,
+          pollarSmartWallet: {
+            address: walletAddress || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+            accountType: 'POLLAR_EMBEDDED_SMART_WALLET',
+            gaslessActive: false,
+            sponsoredBy: 'Pollar Paymaster (SEP-0043)'
+          },
+          settlement: {
+            asset: liveTx.asset,
+            amount: '0.00',
+            ngnEquivalent: '₦0.00',
+            status: 'LOCKED',
+            memoText: liveTx.memo || 'FAILED_ON_CHAIN'
+          },
+          pollarAnchor: {
+            proofHash,
+            stellarTxHash: cleanTx,
+            stellarLedgerSeq: liveTx.ledger,
+            stellarNetwork: liveTx.network,
+            explorerUrl: `https://stellar.expert/explorer/${liveTx.network}/tx/${cleanTx}`,
+            merchantPollarWallet: walletAddress || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+            payoutAsset: liveTx.asset,
+            payoutAmount: '0.00',
+            gaslessSponsored: false,
+            sponsorFee: '0.00000 XLM',
+            stellarMemoText: 'TX_FAILED'
+          },
+          routingPipeline: {
+            sender: {
+              title: 'Buyer / Payer (Nigerian Fiat Rail)',
+              identifier: liveTx.from ? `${liveTx.from.slice(0, 8)}...${liveTx.from.slice(-6)}` : 'Originator',
+              institution: `Stellar ${liveTx.network} Wallet`,
+              bankLogoColor: '#ef4444',
+              verified: false
+            },
+            rail: {
+              type: `Pollar Stellar Rail (${liveTx.network})`,
+              identifier: `Ledger #${liveTx.ledger} (FAILED)`,
+              timestamp: liveTx.createdAt,
+              protocol: 'Pollar SDK (@pollar/core) + Stellar Paymaster',
+              verified: false
+            },
+            receiver: {
+              title: 'Merchant Pollar Smart Account',
+              identifier: walletAddress || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01',
+              institution: 'Pollar Smart Account',
+              bankLogoColor: '#ef4444',
+              amountFormatted: '₦0.00',
+              currency: 'NGN',
+              multiCurrency: {
+                ngn: '₦0.00 NGN',
+                usd: '$0.00 USD',
+                usdc: '0.00 USDC (Stellar)'
+              },
+              verified: false
+            }
+          },
+          forensics: {
+            flags: [
+              `On-Chain Execution Reverted: Transaction is recorded on Stellar ledger #${liveTx.ledger} with FAILED status.`,
+              'Pollar Escrow Action: Zero funds disbursed. Escrow remains locked.'
+            ]
+          },
+          metadata: {
+            error: 'TX_FAILED_ON_CHAIN',
+            txHash: cleanTx
+          },
+          notes: [
+            `Execution failed on Stellar consensus ledger #${liveTx.ledger}.`,
+            'Merchant goods must not be released for failed transactions.'
+          ]
+        };
+      }
+    }
+
+    // 4. Check if we have an existing anchored record in the Pollar registry
     let existingRecord: PollarAnchorRecord | undefined;
     if (sessionId) {
       existingRecord = pollarRegistry.getRecordBySessionId(sessionId);
     }
-    if (!existingRecord && txHash) {
+    if (!existingRecord && cleanTx) {
       for (const rec of pollarRegistry.getAllRecords()) {
-        if (rec.stellarTxHash.toLowerCase() === txHash.toLowerCase()) {
+        if (rec.stellarTxHash.toLowerCase() === cleanTx.toLowerCase()) {
           existingRecord = rec;
           break;
         }
       }
     }
 
-    const cleanTx = (txHash || '').trim().replace(/^0x/, '');
-    const isExplicitDemoReplay = cleanTx.toLowerCase().includes('c3d4e5f6');
-    const isReplay = existingRecord?.isReplay || isExplicitDemoReplay;
+    const isReplay = existingRecord?.isReplay || (existingRecord && existingRecord.claimCount > 1) || isDemoReplay;
 
     let effectiveTxHash = cleanTx || existingRecord?.stellarTxHash || crypto.createHash('sha256').update(`STELLAR:${Date.now()}`).digest('hex');
     let effectiveWallet = walletAddress || existingRecord?.merchantPollarWallet || 'GDPOLLAR7VERIFIER4STELLAR9COMMERCE3LAGOS01';
@@ -233,7 +505,7 @@ export class PollarVerifier {
     let network: 'testnet' | 'public' = 'testnet';
     let settlementAsset = 'USDC';
 
-    // 3. Override with REAL live Stellar transaction data if found on Horizon:
+    // 5. Override with REAL live Stellar transaction data if found on Horizon:
     if (liveTx && liveTx.found) {
       effectiveTxHash = liveTx.txHash;
       network = liveTx.network;
