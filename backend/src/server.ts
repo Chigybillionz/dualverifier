@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { verifyAndAnchorLocalBankReceipt, extractReceiptFromImage } from './services/nibssVerifier.js';
+import { analyzeImageTampering } from './services/tamperForensics.js';
 import { pollarVerifier } from './services/pollarVerifier.js';
 import { pollarRegistry } from './services/pollarRegistry.js';
 import { zcashVerifier } from './services/zcashVerifier.js';
@@ -73,6 +74,16 @@ app.post('/api/verify/local', upload.single('receipt'), async (req, res) => {
     } = req.body;
 
     if (file) {
+      // 1. Run EXIF & Binary Buffer Tamper Forensics (Canva, Photoshop, PicsArt, Pixellab, etc.)
+      const tamperAnalysis = await analyzeImageTampering(file.buffer, file.mimetype, file.originalname);
+      if (tamperAnalysis.flaggedSoftware) {
+        flaggedSoftware = tamperAnalysis.flaggedSoftware;
+      }
+      if (tamperAnalysis.forensicScore < 80) {
+        simulatedTamperScore = tamperAnalysis.forensicScore;
+      }
+
+      // 2. Multimodal OCR Field Extraction
       const extracted = await extractReceiptFromImage(file.buffer, file.mimetype, file.originalname, customApiKey);
       // Prioritize client-confirmed/OCRed amount if provided
       const clientAmount = Number(amount);

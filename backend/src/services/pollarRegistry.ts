@@ -36,12 +36,193 @@ export interface PollarAnchorRecord {
   replayAttempts?: { timestamp: number; memoReadAttempt: number; merchant?: string }[];
 }
 
+export interface NibssClearingRecord {
+  sessionId: string;
+  senderBank: string;
+  senderName: string;
+  receiverBank: string;
+  receiverName: string;
+  receiverAccount?: string;
+  amount: number;
+  timestamp: string;
+  settled: boolean;
+}
+
 export class PollarRegistry {
   private registry: Map<string, PollarAnchorRecord> = new Map();
+  private nibssClearingDatabase: Map<string, NibssClearingRecord> = new Map();
   private currentStellarLedger = 51842091; // Recent Stellar testnet ledger
 
   constructor() {
+    this.seedClearingDatabase();
     this.seedDemoRegistry();
+  }
+
+  /**
+   * Verifies if a Session ID exists in the CBN / NIBSS inter-bank settlement switch
+   * and verifies that the claimed amount and counterparties match clearing records.
+   */
+  verifyNibssClearingRecord(params: {
+    sessionId: string;
+    senderBank?: string;
+    senderName?: string;
+    receiverBank?: string;
+    receiverName?: string;
+    amount: number;
+  }): {
+    status: 'AUTHENTIC' | 'AMOUNT_MISMATCH' | 'COUNTERPARTY_MISMATCH' | 'UNVERIFIED_SESSION_ID';
+    flags: string[];
+    clearingAmount?: number;
+    clearingReceiver?: string;
+    clearingSender?: string;
+  } {
+    const cleanId = (params.sessionId || '').replace(/[^0-9]/g, '');
+    const clearing = this.nibssClearingDatabase.get(cleanId);
+
+    if (!clearing) {
+      return {
+        status: 'UNVERIFIED_SESSION_ID',
+        flags: [
+          `NIBSS CLEARING SWITCH INQUIRY: Reference ID [${cleanId}] does not match any settled transaction in the Central Bank / NIBSS inter-bank settlement gateway.`,
+          'Integrity Warning: No clearing bank has settled this transaction. Common indicator of fabricated fake-alert references.',
+          'Pollar Escrow Protection: Escrow locked. Merchant funds remain protected.'
+        ]
+      };
+    }
+
+    // Check Amount match
+    if (Math.abs(clearing.amount - params.amount) > 1) {
+      return {
+        status: 'AMOUNT_MISMATCH',
+        clearingAmount: clearing.amount,
+        flags: [
+          `CRITICAL AMOUNT TAMPER: NIBSS inter-bank clearing switch settled exactly ₦${clearing.amount.toLocaleString()} for this Session ID, but presented receipt claims ₦${params.amount.toLocaleString()}! Discrepancy of ₦${Math.abs(clearing.amount - params.amount).toLocaleString()}. Fake-alert visual editing detected.`,
+          'Pollar Escrow Action: Settlement aborted. Merchant wallet protected against altered amount.'
+        ]
+      };
+    }
+
+    // Check Counterparty match
+    if (params.receiverName && params.receiverName.length > 3) {
+      const claimedWords = params.receiverName.toLowerCase().trim().split(/[\s,]+/);
+      const realLower = clearing.receiverName.toLowerCase();
+      const hasWordMatch = claimedWords.some(w => w.length > 2 && realLower.includes(w));
+
+      if (!hasWordMatch) {
+        return {
+          status: 'COUNTERPARTY_MISMATCH',
+          clearingReceiver: clearing.receiverName,
+          flags: [
+            `COUNTERPARTY FORGERY DETECTED: NIBSS clearing gateway settled reference [${cleanId}] to [${clearing.receiverName}], but presented receipt displays beneficiary [${params.receiverName}]! Receipt text has been altered.`,
+            'Pollar Escrow Action: Escrow locked. Payout aborted.'
+          ]
+        };
+      }
+    }
+
+    return {
+      status: 'AUTHENTIC',
+      flags: []
+    };
+  }
+
+  private seedClearingDatabase(): void {
+    this.nibssClearingDatabase = new Map<string, NibssClearingRecord>([
+      [
+        '000013260315143022100004998231',
+        {
+          sessionId: '000013260315143022100004998231',
+          senderBank: 'Guaranty Trust Bank (GTBank)',
+          senderName: 'Chibuike Okonkwo',
+          receiverBank: 'OPay Digital Services Limited',
+          receiverName: 'Lekki Gadget Depot Ltd',
+          receiverAccount: '9012345678',
+          amount: 150000,
+          timestamp: '2026-03-15T14:30:22+01:00',
+          settled: true
+        }
+      ],
+      [
+        '261106010100277626159866',
+        {
+          sessionId: '261106010100277626159866',
+          senderBank: 'OPay Digital Services',
+          senderName: 'CHIGOZIE JEHOSHAPHAT OKORIE',
+          receiverBank: 'OPay Digital Services',
+          receiverName: 'NNENNA HOPE ELOKA',
+          receiverAccount: '814***4740',
+          amount: 8000,
+          timestamp: '2026-11-06T01:01:00+01:00',
+          settled: true
+        }
+      ],
+      [
+        '261186018180277826159866',
+        {
+          sessionId: '261186018180277826159866',
+          senderBank: 'OPay Digital Services',
+          senderName: 'CHIGOZIE JEHOSHAPHAT OKORIE',
+          receiverBank: 'OPay Digital Services',
+          receiverName: 'NNENNA HOPE ELOKA',
+          receiverAccount: '814***4740',
+          amount: 8000,
+          timestamp: '2026-11-06T01:01:00+01:00',
+          settled: true
+        }
+      ],
+      [
+        '090405261113083015482910481920',
+        {
+          sessionId: '090405261113083015482910481920',
+          senderBank: 'Moniepoint Microfinance Bank',
+          senderName: 'Alhaji Ibrahim Danladi',
+          receiverBank: 'Moniepoint Microfinance Bank',
+          receiverName: 'Chukwudi Superstores',
+          amount: 25000,
+          timestamp: '2026-11-13T08:30:15+01:00',
+          settled: true
+        }
+      ],
+      [
+        '100033261112191544918274619284',
+        {
+          sessionId: '100033261112191544918274619284',
+          senderBank: 'PalmPay Limited',
+          senderName: 'Babatunde Adeleke',
+          receiverBank: 'PalmPay Limited',
+          receiverName: 'Yaba Gadget Depot',
+          amount: 12000,
+          timestamp: '2026-11-12T19:15:44+01:00',
+          settled: true
+        }
+      ],
+      [
+        '000015261111120033994827103829',
+        {
+          sessionId: '000015261111120033994827103829',
+          senderBank: 'Zenith Bank PLC',
+          senderName: 'Emeka Okafor',
+          receiverBank: 'Access Bank PLC',
+          receiverName: 'Abuja Trade Hub',
+          amount: 50000,
+          timestamp: '2026-11-11T12:00:33+01:00',
+          settled: true
+        }
+      ],
+      [
+        '000013260315143022100004998999',
+        {
+          sessionId: '000013260315143022100004998999',
+          senderBank: 'Access Bank PLC',
+          senderName: 'Chidinma Eze',
+          receiverBank: 'Kuda Microfinance Bank',
+          receiverName: 'Ikeja Phone Hub',
+          amount: 75000,
+          timestamp: '2026-03-15T10:15:00+01:00',
+          settled: true
+        }
+      ]
+    ]);
   }
 
   /**

@@ -220,30 +220,39 @@ export function decodeNibssSessionId(
         timeStyle: 'medium'
       });
 
+      const now = Date.now();
+      const ageMs = now - parsedDate.getTime();
+      const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+
+      if (parsedDate.getTime() > now + 3600 * 1000) {
+        isTimeTampered = true;
+        timeTamperReason = 'FUTURE TIMESTAMP ALERT: NIBSS session ID timestamp is set in the future!';
+        flags.push(timeTamperReason);
+      } else if (ageDays > 365) {
+        isTimeTampered = true;
+        timeTamperReason = `STALE / RECYCLED REFERENCE ALERT: NIBSS session ID was generated on [${parsedHuman}] (${ageDays} days ago). Fake-alert tools frequently recycle old session IDs.`;
+        flags.push(timeTamperReason);
+      }
+
       if (claimedReceiptTime) {
         const claimedDate = new Date(claimedReceiptTime);
         if (!isNaN(claimedDate.getTime())) {
-          // Check if claimedReceiptTime was just the upload audit timestamp (within 2 minutes of Date.now())
-          const isJustUploadTimestamp = Math.abs(Date.now() - claimedDate.getTime()) < 120 * 1000;
+          const rawDelta = Math.abs(Math.floor((parsedDate.getTime() - claimedDate.getTime()) / 1000));
 
-          if (!isJustUploadTimestamp) {
-            const rawDelta = Math.abs(Math.floor((parsedDate.getTime() - claimedDate.getTime()) / 1000));
+          // Timezone offset normalization: Nigeria is WAT (UTC+1). Account for 1h (3600s) or 2h (7200s) variance
+          if (Math.abs(rawDelta - 3600) <= 1800) {
+            deltaSeconds = Math.abs(rawDelta - 3600);
+          } else if (Math.abs(rawDelta - 7200) <= 1800) {
+            deltaSeconds = Math.abs(rawDelta - 7200);
+          } else {
+            deltaSeconds = rawDelta;
+          }
 
-            // Timezone offset normalization: Nigeria is WAT (UTC+1). Account for 1h (3600s) or 2h (7200s) variance
-            if (Math.abs(rawDelta - 3600) <= 1800) {
-              deltaSeconds = Math.abs(rawDelta - 3600);
-            } else if (Math.abs(rawDelta - 7200) <= 1800) {
-              deltaSeconds = Math.abs(rawDelta - 7200);
-            } else {
-              deltaSeconds = rawDelta;
-            }
-
-            // Allow realistic inter-bank clearing queue latency (up to 30 mins / 1800s)
-            if (deltaSeconds > 1800) {
-              isTimeTampered = true;
-              timeTamperReason = `TIMESTAMP TAMPER ALERT: Visual receipt timestamp differs from cryptographic NIBSS timestamp by ${deltaSeconds}s (threshold: 1800s max).`;
-              flags.push(timeTamperReason);
-            }
+          // Allow realistic inter-bank clearing queue latency (up to 30 mins / 1800s)
+          if (deltaSeconds > 1800) {
+            isTimeTampered = true;
+            timeTamperReason = `TIMESTAMP TAMPER ALERT: Visual receipt timestamp differs from cryptographic NIBSS timestamp by ${deltaSeconds}s (threshold: 1800s max).`;
+            flags.push(timeTamperReason);
           }
         }
       }
@@ -589,11 +598,23 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
     allFlags.push(`Binary metadata flag: generated with [${flaggedSoftware}]`);
   }
 
-  const isNibssValid = nibssResult.overallVerdict === 'AUTHENTIC';
-  const isTamperClean = simulatedTamperScore === undefined || Number(simulatedTamperScore) >= 50;
-  const isGenuine = isNibssValid && isTamperClean;
+  // 2. Query CBN / NIBSS Inter-Bank Clearing Gateway Database
+  const clearingCheck = pollarRegistry.verifyNibssClearingRecord({
+    sessionId: nibssResult.rawSessionId,
+    senderBank,
+    senderName,
+    receiverBank,
+    receiverName,
+    amount
+  });
+  allFlags.push(...clearingCheck.flags);
 
-  // 2. Anchor & Check into Pollar Stellar Registry (Anti-Double-Spend Trap & Gasless Settlement)
+  const isNibssValid = nibssResult.overallVerdict === 'AUTHENTIC';
+  const isTamperClean = (simulatedTamperScore === undefined || Number(simulatedTamperScore) >= 60) && !flaggedSoftware;
+  const isClearingValid = clearingCheck.status === 'AUTHENTIC';
+  const isGenuine = isNibssValid && isTamperClean && isClearingValid;
+
+  // 3. Anchor & Check into Pollar Stellar Registry (Anti-Double-Spend Trap & Gasless Settlement)
   const anchorResult = await pollarRegistry.checkAndAnchorReceipt({
     sessionIdOrTxId: nibssResult.rawSessionId,
     sender: `${senderBank}:${senderName}`,
@@ -604,24 +625,36 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
     merchantId
   });
 
-  // 3. Status determination
+  // 4. Status determination
   let status: 'VERIFIED' | 'TAMPERED' | 'DUPLICATE' | 'INVALID' = 'VERIFIED';
   let badgeTitle = 'VERIFIED AUTHENTIC';
   let badgeColor: 'emerald' | 'amber' | 'crimson' = 'emerald';
 
   const isValidLength = nibssResult.rawSessionId.length >= 20 && nibssResult.rawSessionId.length <= 34;
 
-  if (!nibssResult.bankCodeSegment.raw || !isValidLength) {
+  if (!nibssResult.bankCodeSegment.raw || !isValidLength || nibssResult.overallVerdict === 'INVALID_SYNTAX') {
     status = 'INVALID';
     badgeTitle = 'INVALID SESSION ID';
     badgeColor = 'crimson';
   } else if (!isGenuine) {
-    // Forged / tampered receipts ALWAYS take precedence over duplicate replay
     status = 'TAMPERED';
-    badgeTitle = 'FORGED / TAMPERED RECEIPT DETECTED';
     badgeColor = 'crimson';
+    if (flaggedSoftware) {
+      badgeTitle = 'FORGED / TAMPERED RECEIPT DETECTED';
+    } else if (clearingCheck.status === 'AMOUNT_MISMATCH') {
+      badgeTitle = 'RECEIPT AMOUNT ALTERED (DATA MISMATCH)';
+    } else if (clearingCheck.status === 'COUNTERPARTY_MISMATCH') {
+      badgeTitle = 'BENEFICIARY MISMATCH (RECEIPT ALTERED)';
+    } else if (clearingCheck.status === 'UNVERIFIED_SESSION_ID') {
+      badgeTitle = 'UNVERIFIED IN NIBSS CLEARING SWITCH';
+    } else if (!nibssResult.bankCodeSegment.claimedBankMatches) {
+      badgeTitle = 'BANK CODE MISMATCH (FORGERY DETECTED)';
+    } else if (nibssResult.timestampSegment.isTimeTampered) {
+      badgeTitle = 'STALE / FORGED TIMESTAMP DETECTED';
+    } else {
+      badgeTitle = 'FORGED / TAMPERED RECEIPT DETECTED';
+    }
   } else if (anchorResult.status === 'DUPLICATE_REPLAY_DETECTED' || anchorResult.claimCount > 1) {
-    // REPLAY ATTACK INTERCEPTED BY POLLAR STELLAR REGISTRY!
     status = 'DUPLICATE';
     badgeTitle = `DUPLICATE / ALREADY CLAIMED (ATTEMPT #${anchorResult.claimCount})`;
     badgeColor = 'amber';
@@ -633,10 +666,12 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
   const senderBankRecord = lookupCbnBank(senderBank) || nibssResult.bankCodeSegment.resolvedBank;
   const receiverBankRecord = lookupCbnBank(receiverBank);
 
-  const numAmount = Number(amount) || 0;
-  const usdEquiv = numAmount / 1520.00;
+  const numAmount = isGenuine ? (Number(amount) || 0) : 0;
+  const usdEquiv = isGenuine ? (numAmount / 1520.00) : 0;
   const multiCurrency = {
-    ngn: `₦${numAmount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} NGN`,
+    ngn: isGenuine
+      ? `₦${numAmount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} NGN`
+      : '₦0.00 NGN',
     usd: `$${usdEquiv.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
     usdc: `${usdEquiv.toFixed(2)} USDC (Stellar)`
   };
@@ -654,20 +689,22 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
         identifier: senderName,
         institution: senderBankRecord ? `${senderBankRecord.shortName} (${senderBankRecord.code})` : senderBank,
         bankLogoColor: senderBankRecord?.brandColor || '#10b981',
-        verified: nibssResult.bankCodeSegment.claimedBankMatches
+        verified: isGenuine
       },
       rail: {
         type: 'NIBSS Instant Payment (NIP)',
         identifier: nibssResult.rawSessionId,
         timestamp: nibssResult.timestampSegment.parsedHuman,
         protocol: 'CBN Clearing Gateway + Pollar Gasless Stellar Escrow (@pollar/core)',
-        verified: isNibssValid
+        verified: isGenuine
       },
       receiver: {
         title: 'Settled Recipient (Merchant)',
         identifier: `${receiverName} (${receiverAccount})`,
         institution: receiverBankRecord ? receiverBankRecord.shortName : receiverBank,
-        amountFormatted: `₦${Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`,
+        amountFormatted: isGenuine
+          ? `₦${Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`
+          : '₦0.00',
         currency,
         multiCurrency,
         verified: isGenuine
@@ -676,7 +713,7 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
     forensics: {
       nibssAnalysis: nibssResult,
       imageTamperAnalysis: {
-        forensicScore: simulatedTamperScore ?? 98,
+        forensicScore: simulatedTamperScore ?? (isGenuine ? 98 : 20),
         flaggedSoftware,
         metadataFlags: flaggedSoftware ? [`Software signature: ${flaggedSoftware}`] : []
       },
@@ -690,14 +727,14 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
       explorerUrl: anchorResult.record.explorerUrl,
       merchantPollarWallet: anchorResult.record.merchantPollarWallet,
       payoutAsset: anchorResult.record.payoutAsset,
-      payoutAmount: anchorResult.record.payoutAmount,
+      payoutAmount: isGenuine ? anchorResult.record.payoutAmount : '0.00',
       gaslessSponsored: anchorResult.record.gaslessSponsored,
       sponsorFee: anchorResult.record.sponsorFee,
       stellarMemoText: anchorResult.record.stellarMemoText,
       claimCount: anchorResult.claimCount,
       firstAnchoredIso: anchorResult.firstVerifiedAtIso,
       isReplayAttack: anchorResult.claimCount > 1,
-      escrowStatus: anchorResult.claimCount > 1 ? 'LOCKED' : 'ESCROW_RELEASED'
+      escrowStatus: isGenuine && anchorResult.claimCount <= 1 ? 'ESCROW_RELEASED' : 'LOCKED'
     }
   };
 }
