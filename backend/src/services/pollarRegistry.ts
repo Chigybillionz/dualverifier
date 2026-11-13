@@ -143,6 +143,20 @@ export class PollarRegistry {
         }
       ],
       [
+        '261106010100277826159866',
+        {
+          sessionId: '261106010100277826159866',
+          senderBank: 'OPay Digital Services',
+          senderName: 'CHIGOZIE JEHOSHAPHAT OKORIE',
+          receiverBank: 'OPay Digital Services',
+          receiverName: 'NNENNA HOPE ELOKA',
+          receiverAccount: '814***4740',
+          amount: 8000,
+          timestamp: '2026-11-06T01:01:00+01:00',
+          settled: true
+        }
+      ],
+      [
         '261106010100277626159866',
         {
           sessionId: '261106010100277626159866',
