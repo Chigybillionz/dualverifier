@@ -1,26 +1,42 @@
 <template>
-  <div class="min-h-screen bg-[#090D1A] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white antialiased">
-    <!-- 1. Top Navigation Bar with DualVerifier + Pollar Brand & Integrated Rail Selector -->
-    <NavbarLogo
-      :activeRail="activeRail"
-      :memoCount="shieldedMemos.length"
-      :userHistoryCount="personalHistoryCount"
-      @update:activeRail="activeRail = $event"
-      @open-ledger="isLedgerOpen = true"
-      @open-guide="isGuideOpen = true"
-      @open-history="scrollToHistory"
-      @open-did-account="isDidModalOpen = true"
-    />
+  <div class="min-h-screen bg-[#070B14] text-slate-100 flex flex-col font-sans selection:bg-[#e8702a] selection:text-white antialiased">
+    <!-- 1. LITHOS GEOLOGY HERO SHOWCASE (When toggled by user) -->
+    <div v-if="isLithosActive" class="relative">
+      <LithosHero @start-digging="isLithosActive = false; scrollToVerifier()" />
+      <div class="fixed bottom-5 right-5 z-[101]">
+        <button
+          @click="isLithosActive = false"
+          class="px-5 py-2.5 rounded-full bg-black/85 hover:bg-black text-white text-xs font-mono font-bold border border-white/20 shadow-2xl backdrop-blur-xl flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        >
+          <span>← Back to DualVerifier</span>
+        </button>
+      </div>
+    </div>
 
-    <!-- 2. 1-Click Test Lab (Sticky, Evenly-Aligned Scenarios) -->
-    <DemoPresetBar
-      :activePresetId="currentActivePresetId"
-      @select-preset="handleSelectPreset"
-      @trigger-replay="handleTriggerReplay"
-    />
+    <!-- 2. DUALVERIFIER REFINED SPOTLIGHT HERO & WORKSPACE -->
+    <template v-else>
+      <!-- Refined Full-Screen Spotlight Hero (100dvh) with Cursor-Following Reveal -->
+      <DualVerifierSpotlightHero
+        :activeRail="activeRail"
+        :memoCount="shieldedMemos.length"
+        :userHistoryCount="personalHistoryCount"
+        @select-rail="activeRail = $event"
+        @open-ledger="isLedgerOpen = true"
+        @open-guide="isGuideOpen = true"
+        @open-history="scrollToHistory"
+        @open-did-account="isDidModalOpen = true"
+        @toggle-lithos="isLithosActive = true"
+      />
 
-    <!-- 3. Main Workspace Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pb-12 space-y-6">
+      <!-- 1-Click Test Lab (Sticky, Evenly-Aligned Scenarios) -->
+      <DemoPresetBar
+        :activePresetId="currentActivePresetId"
+        @select-preset="handleSelectPreset"
+        @trigger-replay="handleTriggerReplay"
+      />
+
+      <!-- 3. Main Workspace Container -->
+      <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pb-12 space-y-6">
       
       <!-- 3-Step Guided Workflow Pipeline (Horizontally scrollable on mobile without overflow) -->
       <div id="verifier-section" class="py-2 border-b border-white/10">
@@ -302,6 +318,7 @@
       :receipt="currentPresetVisual"
       @close="isReceiptModalOpen = false"
     />
+    </template>
   </div>
 </template>
 
@@ -309,6 +326,8 @@
 import { ref, computed, onMounted } from 'vue';
 import confetti from 'canvas-confetti';
 import NavbarLogo from './components/NavbarLogo.vue';
+import DualVerifierSpotlightHero from './components/DualVerifierSpotlightHero.vue';
+import LithosHero from './components/LithosHero.vue';
 import DemoPresetBar from './components/DemoPresetBar.vue';
 import LocalBankVerifier from './components/LocalBankVerifier.vue';
 import PollarChainVerifier from './components/PollarChainVerifier.vue';
@@ -329,6 +348,15 @@ import {
 } from './utils/auth';
 import { apiUrl } from './utils/api';
 import { MOCK_DEMO_PRESETS } from './data/mockDemoPresets';
+
+const isLithosActive = ref(false);
+
+const scrollToVerifier = () => {
+  const el = document.getElementById('verifier-section');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth' });
+  }
+};
 
 const activeRail = ref<'LOCAL_BANK' | 'POLLAR_STELLAR' | 'ZCASH'>('LOCAL_BANK');
 const currentActivePresetId = ref<string | null>(null);
