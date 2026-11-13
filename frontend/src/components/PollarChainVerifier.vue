@@ -72,6 +72,7 @@
       <div class="relative">
         <input
           v-model="txidInput"
+          @keyup.enter="handleVerify"
           type="text"
           placeholder="e.g. a8f5b3c2d1e09f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e"
           class="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-xl px-4 py-3.5 text-white font-mono text-xs placeholder:text-slate-600 outline-none"
@@ -174,7 +175,10 @@ function toggleWalletConnect() {
 async function pasteTxId() {
   try {
     const text = await navigator.clipboard.readText();
-    if (text) txidInput.value = text.trim();
+    if (text) {
+      txidInput.value = text.trim();
+      handleVerify();
+    }
   } catch (err) {
     console.warn('Clipboard read failed:', err);
   }
