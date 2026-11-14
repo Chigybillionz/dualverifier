@@ -122,34 +122,51 @@
       <!-- Scanned Receipt Summary Card (Clean, Minimalist HCI Layout) -->
       <div v-if="selectedFile && !isScanning" class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 space-y-4 shadow-lg">
         <!-- Thumbnail & File Info Header -->
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div class="flex items-center space-x-3">
+        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+          <!-- Left: Thumbnail & Document Meta -->
+          <div class="flex items-center gap-3 min-w-0 flex-1">
             <div
               v-if="previewUrl"
               @click="showFullImage = true"
-              class="w-12 h-12 rounded-xl border border-slate-700 bg-slate-800 overflow-hidden cursor-pointer hover:border-blue-400 transition-all flex items-center justify-center group relative shrink-0"
+              class="w-11 h-11 rounded-xl border border-slate-700/80 bg-slate-800/80 overflow-hidden cursor-pointer hover:border-blue-400 hover:scale-105 transition-all flex items-center justify-center shrink-0 group relative shadow-inner"
               title="Click to view full image"
             >
               <img :src="previewUrl" alt="Receipt Preview" class="w-full h-full object-cover" />
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px]">
+                🔍
+              </div>
             </div>
-            <div class="min-w-0">
-              <p class="text-xs font-bold text-slate-100 truncate max-w-[200px] sm:max-w-xs">{{ selectedFile.name }}</p>
-              <p class="text-[11px] text-emerald-400 font-mono">✓ Genuine Receipt Detected</p>
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-semibold text-slate-100 truncate" :title="selectedFile?.name">
+                {{ selectedFile?.name }}
+              </p>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="inline-flex items-center text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  ✓ Genuine Receipt Detected
+                </span>
+              </div>
             </div>
           </div>
 
-          <div class="flex items-center space-x-2">
+          <!-- Right: Compact, Polished Action Controls -->
+          <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
             <button
               @click="reScanReceipt"
-              class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700"
+              type="button"
+              title="Re-scan document with OCR"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700/80 text-xs font-medium transition-all shadow-sm active:scale-95"
             >
-              🔄 Re-Scan
+              <RotateCw class="w-3.5 h-3.5 text-blue-400" />
+              <span>Re-Scan</span>
             </button>
             <button
               @click="clearFile"
-              class="text-xs px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50"
+              type="button"
+              title="Remove document and reset"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-medium transition-all shadow-sm active:scale-95"
             >
-              Remove
+              <Trash2 class="w-3.5 h-3.5 text-rose-400" />
+              <span>Remove</span>
             </button>
           </div>
         </div>
@@ -349,6 +366,7 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue';
+import { RotateCw, Trash2 } from 'lucide-vue-next';
 import { performReceiptOcr } from '../utils/receiptOcr';
 import { classifyReceiptDocument, type ReceiptClassification } from '../utils/receiptClassifier';
 import { getAllCbnBanks, lookupCbnBank } from '../utils/cbnBankCodes';
