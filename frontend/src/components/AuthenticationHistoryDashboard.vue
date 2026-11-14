@@ -97,16 +97,18 @@
 
     <!-- Notification Toast (Delete / Redo Feedback) -->
     <div
-      v-if="notificationMessage"
-      class="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center justify-between gap-3 shadow-lg"
+      v-if="notification"
+      class="p-3.5 rounded-2xl border text-xs font-mono flex items-center justify-between gap-3 shadow-lg transition-all animate-fade-in"
+      :class="notification.type === 'error' ? 'bg-rose-950/80 border-rose-500/50 text-rose-300' : 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'"
     >
       <div class="flex items-center space-x-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>{{ notificationMessage }}</span>
+        <span class="w-2 h-2 rounded-full animate-pulse" :class="notification.type === 'error' ? 'bg-rose-400' : 'bg-emerald-400'"></span>
+        <span>{{ notification.text }}</span>
       </div>
       <button
-        @click="notificationMessage = null"
-        class="text-emerald-400 hover:text-white p-1 text-sm leading-none"
+        @click="notification = null"
+        class="hover:text-white p-1 text-sm leading-none"
+        :class="notification.type === 'error' ? 'text-rose-400' : 'text-emerald-400'"
       >
         ✕
       </button>
@@ -364,7 +366,7 @@
                   </button>
 
                   <button
-                    @click.stop="handleDeleteRecord(rec)"
+                    @click.stop="promptDeleteRecord(rec)"
                     :disabled="deletingRecordId === rec.id"
                     type="button"
                     class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-800/80 transition-all"
@@ -453,31 +455,132 @@
       @account-changed="handleAccountSwitched"
     />
 
-    <!-- Confirmation Modal for Clear All History -->
+    <!-- In-App Modal for Single Record Deletion & Replay Reset -->
     <div
-      v-if="isClearConfirmModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      v-if="recordToDelete"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+      @click.self="recordToDelete = null"
     >
-      <div class="bg-[#0F1624] border border-rose-500/30 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4">
-        <div class="flex items-center space-x-3 text-rose-400">
-          <div class="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 text-lg">
-            🗑️
+      <div class="bg-[#0B101D] border border-rose-500/30 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl relative overflow-hidden text-left space-y-4">
+        <!-- Ambient Glow -->
+        <div class="absolute -top-12 -right-12 w-36 h-36 bg-rose-600/15 rounded-full blur-2xl pointer-events-none"></div>
+
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center space-x-3 text-rose-400">
+            <div class="w-11 h-11 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 text-lg shadow-inner">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white font-mono flex items-center gap-2">
+                <span>Delete Verification Record?</span>
+              </h3>
+              <p class="text-[11px] text-rose-300/80 font-mono">Unlock Anti-Replay Lock & Redo Verification</p>
+            </div>
           </div>
-          <div>
-            <h3 class="text-base font-bold text-white font-mono">Clear Personal History?</h3>
-            <p class="text-xs text-rose-300/80">Permanent Reset & Replay Release</p>
+          <button
+            @click="recordToDelete = null"
+            type="button"
+            class="text-slate-500 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Record Details Preview Card -->
+        <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2 text-xs font-mono">
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="text-slate-400">Record ID:</span>
+            <span class="text-blue-400 font-bold">{{ recordToDelete.id }}</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="text-slate-400">Reference / Session ID:</span>
+            <span class="text-amber-300 font-bold truncate max-w-[200px]" :title="recordToDelete.transactionReference">
+              {{ recordToDelete.transactionReference }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="text-slate-400">Counterparties:</span>
+            <span class="text-slate-200 truncate max-w-[200px]">
+              {{ recordToDelete.verificationResult?.sender || 'N/A' }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800">
+            <span class="text-slate-400">Amount:</span>
+            <span class="text-emerald-400 font-bold text-sm">{{ recordToDelete.verificationResult?.amount || 'N/A' }}</span>
           </div>
         </div>
 
-        <p class="text-xs text-slate-300 leading-relaxed">
-          This will permanently delete all your private verification records and reset all anchored receipt locks in Pollar. You will immediately be able to re-verify any of these receipts without triggering the duplicate replay trap.
+        <!-- Explainer Text -->
+        <p class="text-xs text-slate-300 leading-relaxed font-sans">
+          This record will be permanently deleted from your private history, and its reference hash will be <strong class="text-white">un-anchored from Pollar's anti-replay registry</strong>. You will immediately be able to re-verify this receipt without being blocked as a duplicate.
+        </p>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end space-x-2 pt-2">
+          <button
+            @click="recordToDelete = null"
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="executeDeleteRecord"
+            :disabled="deletingRecordId === recordToDelete.id"
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold transition-all shadow-lg shadow-rose-600/30 active:scale-95 flex items-center space-x-1.5"
+          >
+            <span v-if="deletingRecordId === recordToDelete.id" class="animate-spin">⏳</span>
+            <svg v-else class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span>Delete & Unlock Replay</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- In-App Confirmation Modal for Clear All History -->
+    <div
+      v-if="isClearConfirmModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+      @click.self="isClearConfirmModalOpen = false"
+    >
+      <div class="bg-[#0B101D] border border-rose-500/30 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl relative overflow-hidden text-left space-y-4">
+        <!-- Ambient Glow -->
+        <div class="absolute -top-12 -right-12 w-36 h-36 bg-rose-600/15 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center space-x-3 text-rose-400">
+            <div class="w-11 h-11 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 text-lg shadow-inner">
+              🗑️
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white font-mono">Clear All History?</h3>
+              <p class="text-[11px] text-rose-300/80 font-mono">Permanent Reset & Replay Release</p>
+            </div>
+          </div>
+          <button
+            @click="isClearConfirmModalOpen = false"
+            type="button"
+            class="text-slate-500 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-300 leading-relaxed font-sans">
+          This will permanently delete all <strong class="text-white">{{ historyRecords.length }} verification records</strong> from your private account and release all anchored receipts from Pollar's anti-replay locks. You will immediately be able to redo verification for any of them.
         </p>
 
         <div class="flex items-center justify-end space-x-2 pt-2">
           <button
             @click="isClearConfirmModalOpen = false"
             type="button"
-            class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold transition-colors"
+            class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 text-xs font-mono font-bold transition-colors"
           >
             Cancel
           </button>
@@ -485,7 +588,7 @@
             @click="handleClearAllHistory"
             :disabled="isClearingAll"
             type="button"
-            class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold transition-all shadow-md shadow-rose-600/30 flex items-center space-x-1.5"
+            class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-bold transition-all shadow-lg shadow-rose-600/30 active:scale-95 flex items-center space-x-1.5"
           >
             <span v-if="isClearingAll" class="animate-spin">⏳</span>
             <span>Yes, Clear All & Unlock Replays</span>
@@ -528,15 +631,16 @@ const showDevLogs = ref(false);
 const isClearConfirmModalOpen = ref(false);
 const isClearingAll = ref(false);
 const deletingRecordId = ref<string | null>(null);
-const notificationMessage = ref<string | null>(null);
+const recordToDelete = ref<AuthenticationHistoryRecord | null>(null);
+const notification = ref<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-function showToast(msg: string) {
-  notificationMessage.value = msg;
+function showToast(text: string, type: 'success' | 'error' | 'info' = 'success') {
+  notification.value = { text, type };
   setTimeout(() => {
-    if (notificationMessage.value === msg) {
-      notificationMessage.value = null;
+    if (notification.value?.text === text) {
+      notification.value = null;
     }
-  }, 4500);
+  }, 5000);
 }
 
 const clientDeviceInfo = detectDeviceInfo();
@@ -664,10 +768,13 @@ function handleSelectRecord(rec: AuthenticationHistoryRecord) {
   emit('select-record', rec);
 }
 
-async function handleDeleteRecord(rec: AuthenticationHistoryRecord) {
-  if (!confirm(`Delete verification record ${rec.id}? This will remove it from your history and unlock its reference so you can redo verification.`)) {
-    return;
-  }
+function promptDeleteRecord(rec: AuthenticationHistoryRecord) {
+  recordToDelete.value = rec;
+}
+
+async function executeDeleteRecord() {
+  if (!recordToDelete.value) return;
+  const rec = recordToDelete.value;
   deletingRecordId.value = rec.id;
   try {
     const res = await fetch(apiUrl(`/api/authentication-history/record/${rec.id}`), {
@@ -680,14 +787,15 @@ async function handleDeleteRecord(rec: AuthenticationHistoryRecord) {
       if (userStats.value && userStats.value.totalVerifications > 0) {
         userStats.value.totalVerifications -= 1;
       }
-      showToast(`Record ${rec.id} deleted. Replay lock unlocked — you can now re-verify ref ${rec.transactionReference}`);
+      showToast(`Record ${rec.id} deleted. Replay lock unlocked — you can now re-verify ref ${rec.transactionReference}`, 'success');
       emit('record-deleted', { recordId: rec.id, transactionReference: rec.transactionReference });
+      recordToDelete.value = null;
       fetchMyHistory();
     } else {
-      alert(data.error || 'Failed to delete record');
+      showToast(data.error || 'Failed to delete record', 'error');
     }
   } catch (err: any) {
-    alert(err.message || 'Network error while deleting record');
+    showToast(err.message || 'Network error while deleting record', 'error');
   } finally {
     deletingRecordId.value = null;
   }
@@ -710,14 +818,14 @@ async function handleClearAllHistory() {
         userStats.value.duplicateVerifications = 0;
       }
       isClearConfirmModalOpen.value = false;
-      showToast('All verification records cleared & replay locks unlocked. You can now redo any verification.');
+      showToast('All verification records cleared & replay locks unlocked. You can now redo any verification.', 'success');
       emit('history-cleared');
       fetchMyHistory();
     } else {
-      alert(data.error || 'Failed to clear history');
+      showToast(data.error || 'Failed to clear history', 'error');
     }
   } catch (err: any) {
-    alert(err.message || 'Network error while clearing history');
+    showToast(err.message || 'Network error while clearing history', 'error');
   } finally {
     isClearingAll.value = false;
     isClearConfirmModalOpen.value = false;

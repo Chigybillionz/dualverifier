@@ -726,7 +726,10 @@ async function handleResetReplay(card: any) {
       await fetchShieldedMemos();
       authHistoryDashboardRef.value?.refresh?.();
       await fetchPersonalHistory();
-      alert(`Receipt ${target} replay lock reset! You can now redo verification.`);
+      const el = document.getElementById('verifier-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   } catch (err) {
     console.warn('Failed to reset replay:', err);
