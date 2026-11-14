@@ -103,32 +103,24 @@
         </div>
       </div>
 
-      <!-- Document Rejection Banner (Non-Receipt Upload) -->
+      <!-- Document Verification Notice (Optional review helper) -->
       <div
         v-if="!isClassifying && classification && !classification.isPaymentReceipt && classification.documentType !== 'BLOCKCHAIN_TRANSACTION'"
-        class="p-4 rounded-2xl border border-rose-600/50 bg-rose-950/40 space-y-2.5"
+        class="p-4 rounded-2xl border border-amber-500/40 bg-amber-950/30 space-y-2"
       >
-        <div class="flex items-center space-x-2 text-rose-300 text-xs font-bold">
-          <svg class="w-5 h-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.98l-6.93-12a2 2 0 00-3.5 0l-6.93 12A2 2 0 005.07 19z"/>
+        <div class="flex items-center space-x-2 text-amber-300 text-xs font-bold">
+          <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
-          <span>Not a Payment Receipt</span>
+          <span>Receipt Verification Notice</span>
         </div>
-        <p class="text-xs text-rose-200/90 leading-relaxed pl-7">
-          {{ classification.reason }} Please upload a Nigerian bank transfer receipt (OPay, GTBank, etc.).
+        <p class="text-xs text-amber-200/90 leading-relaxed pl-6">
+          {{ classification.reason }} Please verify the extracted reference and amount below before confirming.
         </p>
-        <div class="pl-7 pt-1">
-          <button
-            @click="clearFile"
-            class="px-3 py-1.5 rounded-lg bg-rose-900/60 hover:bg-rose-800 text-white text-xs font-semibold transition-all"
-          >
-            Remove & Try Another File
-          </button>
-        </div>
       </div>
 
       <!-- Scanned Receipt Summary Card (Clean, Minimalist HCI Layout) -->
-      <div v-if="selectedFile && !isScanning && (!classification || classification.isPaymentReceipt)" class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 space-y-4 shadow-lg">
+      <div v-if="selectedFile && !isScanning" class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 space-y-4 shadow-lg">
         <!-- Thumbnail & File Info Header -->
         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
           <div class="flex items-center space-x-3">
@@ -294,29 +286,18 @@
         isLoading ||
         isScanning ||
         isClassifying ||
-        (inputMode === 'upload' && (!selectedFile || (classification && !classification.isPaymentReceipt))) ||
+        (inputMode === 'upload' && !selectedFile) ||
         (inputMode === 'session' && cleanSessionId.length < 10)
       "
       type="button"
-      class="w-full py-3.5 rounded-xl font-semibold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-sans active:scale-[0.99]"
-      :class="[
-        (inputMode === 'upload' && classification && !classification.isPaymentReceipt)
-          ? 'bg-rose-950/60 border border-rose-800/60 text-rose-400'
-          : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/25'
-      ]"
+      class="w-full py-3.5 rounded-xl font-semibold text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-sans active:scale-[0.99] bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/25"
     >
       <svg v-if="isLoading" class="animate-spin -ml-1 mr-2 h-5 w-5 text-slate-950" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
       <span v-else>
-        {{
-          (inputMode === 'upload' && classification && !classification.isPaymentReceipt)
-            ? 'Verification Inactive — Document Is Not a Receipt'
-            : isLoading
-            ? 'Verifying Cryptography & Releasing Escrow...'
-            : 'Verify Receipt & Release Pollar Escrow'
-        }}
+        {{ isLoading ? 'Verifying Cryptography & Releasing Escrow...' : 'Verify Receipt & Release Pollar Escrow' }}
       </span>
     </button>
 
@@ -370,6 +351,7 @@
 import { ref, computed, reactive, onMounted } from 'vue';
 import { performReceiptOcr } from '../utils/receiptOcr';
 import { classifyReceiptDocument, type ReceiptClassification } from '../utils/receiptClassifier';
+import { getAllCbnBanks, lookupCbnBank } from '../utils/cbnBankCodes';
 
 const props = defineProps<{
   isLoading: boolean;
@@ -380,24 +362,7 @@ const emit = defineEmits<{
   (e: 'reset-verification'): void;
 }>();
 
-const NIGERIAN_BANKS = [
-  'Guaranty Trust Bank (GTBank)',
-  'OPay Digital Services',
-  'Moniepoint Microfinance Bank',
-  'PalmPay Limited',
-  'Access Bank PLC',
-  'Zenith Bank PLC',
-  'First Bank of Nigeria',
-  'United Bank for Africa',
-  'Kuda Microfinance Bank',
-  'Wema Bank / ALAT',
-  'Stanbic IBTC Bank',
-  'Sterling Bank PLC',
-  'Fidelity Bank PLC',
-  'Union Bank of Nigeria',
-  'Polaris Bank',
-  'FCMB (First City Monument Bank)'
-];
+const NIGERIAN_BANKS = getAllCbnBanks().map(b => b.name);
 
 const inputMode = ref<'upload' | 'session'>('upload');
 const isDragging = ref(false);
@@ -480,17 +445,23 @@ async function processFile(file: File) {
   previewUrl.value = URL.createObjectURL(file);
   emit('reset-verification');
 
-  // Step 1: AI Document Classification
+  // Reset extracted fields for new upload so past defaults never corrupt verification
+  extractedData.sessionId = '';
+  extractedData.amount = 0;
+  extractedData.senderBank = '';
+  extractedData.senderName = '';
+  extractedData.receiverBank = '';
+  extractedData.receiverName = '';
+  extractedData.receiverAccount = '';
+  extractedData.flaggedSoftware = '';
+  extractedData.confidenceNotes = '';
+
+  // Step 1: AI Document Classification (runs without blocking OCR)
   isClassifying.value = true;
   try {
     const apiKey = localStorage.getItem('gemini_api_key') || undefined;
     const result = await classifyReceiptDocument(file, { apiKey });
     classification.value = result;
-
-    if (!result.isPaymentReceipt) {
-      isClassifying.value = false;
-      return;
-    }
   } catch (err) {
     console.warn('Classifier fallback:', err);
   } finally {
@@ -512,14 +483,24 @@ async function processFile(file: File) {
       }
     });
 
-    if (ocrResult.sessionId) extractedData.sessionId = ocrResult.sessionId;
+    if (ocrResult.sessionId) {
+      extractedData.sessionId = ocrResult.sessionId;
+      // Auto-resolve sender bank from 6-digit NIBSS code
+      if (ocrResult.sessionId.length >= 6) {
+        const bank = lookupCbnBank(ocrResult.sessionId.substring(0, 6));
+        if (bank) {
+          extractedData.senderBank = bank.name;
+        }
+      }
+    }
     if (ocrResult.amount !== undefined && ocrResult.amount !== null && ocrResult.amount > 0) {
       extractedData.amount = ocrResult.amount;
     }
+    if (ocrResult.senderBank && !extractedData.senderBank) extractedData.senderBank = ocrResult.senderBank;
     if (ocrResult.senderName) extractedData.senderName = ocrResult.senderName;
-    if (ocrResult.senderBank) extractedData.senderBank = ocrResult.senderBank;
-    if (ocrResult.receiverName) extractedData.receiverName = ocrResult.receiverName;
     if (ocrResult.receiverBank) extractedData.receiverBank = ocrResult.receiverBank;
+    if (ocrResult.receiverName) extractedData.receiverName = ocrResult.receiverName;
+    if (ocrResult.receiverAccount) extractedData.receiverAccount = ocrResult.receiverAccount;
     if (ocrResult.receiptTimestamp) extractedData.receiptTimestamp = ocrResult.receiptTimestamp;
     if (ocrResult.ocrEngine) extractedData.ocrEngine = ocrResult.ocrEngine;
     if (ocrResult.confidenceNotes) extractedData.confidenceNotes = ocrResult.confidenceNotes;
@@ -535,6 +516,15 @@ function clearFile() {
   selectedFile.value = null;
   previewUrl.value = null;
   classification.value = null;
+  extractedData.sessionId = '';
+  extractedData.amount = 0;
+  extractedData.senderBank = '';
+  extractedData.senderName = '';
+  extractedData.receiverBank = '';
+  extractedData.receiverName = '';
+  extractedData.receiverAccount = '';
+  extractedData.flaggedSoftware = '';
+  extractedData.confidenceNotes = '';
   if (fileInputRef.value) fileInputRef.value.value = '';
   emit('reset-verification');
 }

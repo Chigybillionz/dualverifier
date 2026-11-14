@@ -110,10 +110,10 @@ export async function analyzeImageTampering(
     }
   }
 
-  // Filename inspection
+  // Filename inspection (targeted matching so innocent names like 'credit-alert.png' are not falsely flagged)
   if (fileName) {
     const fnLower = fileName.toLowerCase();
-    if (fnLower.includes('canva') || fnLower.includes('edit') || fnLower.includes('fake') || fnLower.includes('spoof')) {
+    if (/(?:^|[^a-z])(edited|editor|canva|fake|spoof|photoshop)(?:[^a-z]|$)/i.test(fnLower)) {
       metadataFlags.push(`SUSPICIOUS FILENAME: File name contains editing indicators [${fileName}].`);
       forensicScore -= 20;
     }

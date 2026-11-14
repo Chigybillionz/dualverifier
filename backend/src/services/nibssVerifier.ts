@@ -185,7 +185,8 @@ export function decodeNibssSessionId(
       }
     } else if (claimedSenderBank && resolvedBank && !isTimestampFirst) {
       const claimedResolved = lookupCbnBank(claimedSenderBank);
-      if (claimedResolved && claimedResolved.code !== resolvedBank.code) {
+      const isGenericClaim = /^(Nigerian\s*Commercial\s*Bank|Commercial\s*Bank|Bank|Transfer\s*Sender|Unknown)$/i.test(claimedSenderBank.trim());
+      if (claimedResolved && claimedResolved.code !== resolvedBank.code && !isGenericClaim) {
         claimedBankMatches = false;
         bankWarning = `FORGERY DETECTED: Receipt logo/name claims [${claimedSenderBank}] (${claimedResolved.shortName}), but NIBSS Session ID code [${bankSegment}] mathematically routes to [${resolvedBank.name}]!`;
         flags.push(bankWarning);
@@ -224,13 +225,13 @@ export function decodeNibssSessionId(
       const ageMs = now - parsedDate.getTime();
       const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
 
-      if (parsedDate.getTime() > now + 3600 * 1000) {
+      if (parsedDate.getTime() > now + 86400 * 1000) {
         isTimeTampered = true;
-        timeTamperReason = 'FUTURE TIMESTAMP ALERT: NIBSS session ID timestamp is set in the future!';
+        timeTamperReason = 'FUTURE TIMESTAMP ALERT: NIBSS session ID timestamp is set more than 24 hours in the future!';
         flags.push(timeTamperReason);
-      } else if (ageDays > 365) {
+      } else if (ageDays > 730) {
         isTimeTampered = true;
-        timeTamperReason = `STALE / RECYCLED REFERENCE ALERT: NIBSS session ID was generated on [${parsedHuman}] (${ageDays} days ago). Fake-alert tools frequently recycle old session IDs.`;
+        timeTamperReason = `STALE / RECYCLED REFERENCE ALERT: NIBSS session ID was generated on [${parsedHuman}] (${ageDays} days ago). Session references older than 2 years cannot be settled.`;
         flags.push(timeTamperReason);
       }
 

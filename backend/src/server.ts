@@ -8,7 +8,7 @@ import { pollarVerifier } from './services/pollarVerifier.js';
 import { pollarRegistry } from './services/pollarRegistry.js';
 import { zcashVerifier } from './services/zcashVerifier.js';
 import { zcashMemoRegistry } from './services/zcashMemoRegistry.js';
-import { getAllCbnBanks } from './config/cbnBankCodes.js';
+import { getAllCbnBanks, lookupCbnBank } from './config/cbnBankCodes.js';
 import { MOCK_DEMO_PRESETS } from './data/mockDemoPresets.js';
 import authHistoryRoutes from './routes/authHistoryRoutes.js';
 import { optionalAuth } from './middleware/authMiddleware.js';
@@ -95,9 +95,9 @@ app.post('/api/verify/local', upload.single('receipt'), async (req, res) => {
       amount = (!isNaN(clientAmount) && clientAmount > 0) ? clientAmount : (extracted.amount || 0);
 
       sessionId = (sessionId && sessionId.trim().length >= 10) ? sessionId : (extracted.sessionId || sessionId);
-      senderBank = (senderBank && senderBank.trim()) ? senderBank : (extracted.senderBank || 'Guaranty Trust Bank (GTBank)');
+      senderBank = (senderBank && senderBank.trim()) ? senderBank : (extracted.senderBank || '');
       senderName = (senderName && senderName.trim()) ? senderName : (extracted.senderName || 'Transfer Sender');
-      receiverBank = (receiverBank && receiverBank.trim()) ? receiverBank : (extracted.receiverBank || 'OPay Digital Services');
+      receiverBank = (receiverBank && receiverBank.trim()) ? receiverBank : (extracted.receiverBank || 'Inter-Bank Beneficiary');
       receiverName = (receiverName && receiverName.trim()) ? receiverName : (extracted.receiverName || 'Settled Recipient');
       receiverAccount = (receiverAccount && receiverAccount.trim()) ? receiverAccount : (extracted.receiverAccount || '••••••••••');
       receiptTimestamp = receiptTimestamp || extracted.receiptTimestamp;
@@ -105,8 +105,21 @@ app.post('/api/verify/local', upload.single('receipt'), async (req, res) => {
 
     sessionId = (sessionId || '').replace(/[^0-9]/g, '');
     amount = Number(amount) || 0;
-    senderBank = senderBank || 'Guaranty Trust Bank (GTBank)';
-    receiverBank = receiverBank || 'OPay Digital Services';
+
+    // Authoritative Bank Resolution:
+    // If sessionId starts with a 6-digit CBN Bank Code (e.g. 000014 Access, 000015 Zenith, 000011 FirstBank, 090405 Moniepoint, etc.)
+    if (sessionId.length >= 6) {
+      const codeBank = lookupCbnBank(sessionId.substring(0, 6));
+      if (codeBank) {
+        // If senderBank is empty, generic, or was defaulted to GTBank while session routes elsewhere, adopt authentic bank
+        if (!senderBank || senderBank === 'Guaranty Trust Bank (GTBank)' || senderBank === 'Nigerian Commercial Bank' || senderBank === 'Commercial Bank') {
+          senderBank = codeBank.name;
+        }
+      }
+    }
+
+    senderBank = senderBank || 'Nigerian Commercial Bank';
+    receiverBank = receiverBank || 'Inter-Bank Beneficiary';
 
     const blueCard = await verifyAndAnchorLocalBankReceipt({
       sessionId,
