@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { authHistoryDatabase } from '../services/authHistoryDatabase.js';
+import { pollarRegistry } from '../services/pollarRegistry.js';
 
 async function runTests() {
   console.log('\n============================================================');
@@ -403,8 +404,86 @@ async function runTests() {
 
   console.log('  ✓ Developer test records completely segregated from ordinary user dashboards.');
 
+  // -------------------------------------------------------------
+  // TEST 8: User Self-Deletion of Records & Replay Reset (IDOR Protection)
+  // -------------------------------------------------------------
+  console.log('▶ [TEST 8] User Self-Deletion & Replay Reset with IDOR Protection');
+  
+  // Create a record for User A that was anchored
+  const testRef = '000014261114120000123456789012';
+  const testRecord = authHistoryDatabase.recordAuthentication({
+    userId: userA.user.id,
+    did: userA.user.did,
+    sessionId: userA.session.id,
+    deviceId: userA.session.deviceId,
+    deviceName: 'User A Phone',
+    authenticationMethod: 'DID_KEY_PASSKEY',
+    verificationStatus: 'SUCCESS',
+    transactionReference: testRef,
+    verificationResult: {
+      rail: 'LOCAL_BANK',
+      badgeTitle: 'VERIFIED AUTHENTIC',
+      badgeColor: 'emerald',
+      sender: 'Access Bank:Chinedu',
+      receiver: 'OPay:Store',
+      amount: '₦20,000.00',
+      currency: 'NGN',
+      proofHash: '0xtestrefhash123456',
+      flags: []
+    }
+  });
+
+  // Also simulate anchor in pollarRegistry
+  await pollarRegistry.checkAndAnchorReceipt({
+    sessionIdOrTxId: testRef,
+    sender: 'Access Bank:Chinedu',
+    receiver: 'OPay:Store',
+    amount: 20000
+  });
+
+  // Verify second check reports DUPLICATE_REPLAY_DETECTED
+  const replayCheck1 = await pollarRegistry.checkAndAnchorReceipt({
+    sessionIdOrTxId: testRef,
+    sender: 'Access Bank:Chinedu',
+    receiver: 'OPay:Store',
+    amount: 20000
+  });
+  assert.strictEqual(replayCheck1.isReplay, true, 'Receipt must initially trigger replay protection');
+
+  // Attempt 1: IDOR Attack - User B attempts to delete User A's record
+  const idorDeleteResult = authHistoryDatabase.deleteUserRecord(testRecord.id, userB.user.id, userB.user.role);
+  assert.strictEqual(idorDeleteResult.success, false, 'IDOR delete must fail');
+  assert.ok(idorDeleteResult.error?.includes('Access denied'), 'Must state access denied');
+
+  // Attempt 2: Legitimate User A deletes their own record
+  const legitDeleteResult = authHistoryDatabase.deleteUserRecord(testRecord.id, userA.user.id, userA.user.role);
+  assert.strictEqual(legitDeleteResult.success, true, 'User A deleting own record must succeed');
+  assert.strictEqual(legitDeleteResult.deletedRecord?.id, testRecord.id);
+
+  // Un-anchor the receipt using resetReceiptAnchor
+  const resetRes = pollarRegistry.resetReceiptAnchor(testRef);
+  assert.strictEqual(resetRes.success, true, 'Resetting receipt anchor must succeed');
+
+  // Re-verify the same receipt: must now be NEW_VERIFIED_SETTLEMENT, not replay!
+  const redoCheck = await pollarRegistry.checkAndAnchorReceipt({
+    sessionIdOrTxId: testRef,
+    sender: 'Access Bank:Chinedu',
+    receiver: 'OPay:Store',
+    amount: 20000
+  });
+  assert.strictEqual(redoCheck.isReplay, false, 'After deletion & reset, receipt can be re-verified cleanly');
+  assert.strictEqual(redoCheck.status, 'NEW_VERIFIED_SETTLEMENT');
+
+  // Test clearUserHistory
+  const clearRes = authHistoryDatabase.clearUserHistory(userA.user.id);
+  assert.strictEqual(clearRes.success, true);
+  const remainingA = authHistoryDatabase.getUserHistory(userA.user.id);
+  assert.strictEqual(remainingA.records.length, 0, 'User A history must be completely cleared');
+
+  console.log('  ✓ User self-deletion verified: IDOR blocked, record removed, replay lock reset for re-verification.');
+
   console.log('\n============================================================');
-  console.log('🎉 ALL 7 SECURITY & PRIVACY VERIFICATION TESTS PASSED!');
+  console.log('🎉 ALL 8 SECURITY & PRIVACY VERIFICATION TESTS PASSED!');
   console.log('============================================================\n');
 }
 

@@ -87,6 +87,15 @@
       <!-- Quick Action Buttons -->
       <div class="flex items-center gap-2 shrink-0 sm:self-start">
         <button
+          v-if="card.status === 'DUPLICATE'"
+          @click="$emit('reset-replay', card)"
+          class="px-3 sm:px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-amber-500/10 active:scale-95 transition-all whitespace-nowrap"
+          title="Unlock this receipt from the replay registry so you can redo verification"
+        >
+          <span>🔁 Redo Verification</span>
+        </button>
+
+        <button
           @click="$emit('open-certificate', card)"
           class="px-3 sm:px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-blue-500/20 active:scale-95 transition-all whitespace-nowrap"
         >
@@ -266,6 +275,7 @@ const props = defineProps<{
 
 defineEmits<{
   (e: 'open-certificate', card: any): void;
+  (e: 'reset-replay', card: any): void;
 }>();
 
 const copied = ref(false);

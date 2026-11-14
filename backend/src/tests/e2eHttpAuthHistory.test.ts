@@ -194,6 +194,76 @@ async function runHttpTests() {
     assert.strictEqual(devDevLogRes.status, 200, 'Developer must be granted access to diagnostic logs');
     console.log('  ✓ Role-based access control verified: 403 for user, 200 for developer');
 
+    // 11. IDOR Delete Attack Test: Bob attempts to delete Alice's record
+    console.log('▶ [HTTP 11] IDOR Delete Attack: Bob attempts DELETE /api/authentication-history/record/:id with Alice\'s record');
+    const idorDelRes = await fetch(`${baseUrl}/api/authentication-history/record/${aliceRecordId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${bobToken}` }
+    });
+    assert.strictEqual(idorDelRes.status, 403, 'Bob must receive 403 Forbidden when trying to delete Alice\'s record');
+    const idorDelData: any = await idorDelRes.json();
+    assert.strictEqual(idorDelData.success, false);
+    console.log('  ✓ IDOR Delete Blocked: Server responded 403 Forbidden!');
+
+    // 12. Legitimate User Deletion & Replay Reset Test: Alice deletes her record and re-verifies
+    console.log('▶ [HTTP 12] Legitimate Deletion & Replay Reset: Alice deletes record & re-verifies same receipt');
+    const aliceDelRes = await fetch(`${baseUrl}/api/authentication-history/record/${aliceRecordId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${aliceToken}` }
+    });
+    assert.strictEqual(aliceDelRes.status, 200);
+    const aliceDelData: any = await aliceDelRes.json();
+    assert.strictEqual(aliceDelData.success, true);
+    console.log('  ✓ Alice successfully deleted her verification record');
+
+    // Alice re-verifies the same transaction - should succeed as genuine new verification, not duplicate replay!
+    const reVerifyRes = await fetch(`${baseUrl}/api/verify/test-rail`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${aliceToken}`
+      },
+      body: JSON.stringify({
+        sessionId: '000013260315143022100004998231',
+        senderBank: 'Guaranty Trust Bank (GTBank)',
+        senderName: 'Chibuike Okonkwo',
+        receiverBank: 'OPay Digital Services Limited',
+        receiverName: 'Lekki Gadget Depot Ltd',
+        receiverAccount: '9012345678',
+        amount: 150000,
+        currency: 'NGN',
+        receiptTimestamp: '2026-03-15T14:30:22+01:00'
+      })
+    });
+    assert.strictEqual(reVerifyRes.status, 200);
+    const reVerifyData: any = await reVerifyRes.json();
+    assert.strictEqual(reVerifyData.success, true);
+    assert.strictEqual(reVerifyData.historyRecord.verificationStatus, 'SUCCESS', 'Receipt must be verified again without replay block');
+    console.log('  ✓ Alice successfully re-verified the transaction after deleting previous record');
+
+    // 13. Direct Receipt Replay Reset API Test
+    console.log('▶ [HTTP 13] Direct Replay Reset: POST /api/verify/reset-receipt');
+    const resetReceiptRes = await fetch(`${baseUrl}/api/verify/reset-receipt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: '000013260315143022100004998231' })
+    });
+    assert.strictEqual(resetReceiptRes.status, 200);
+    const resetReceiptData: any = await resetReceiptRes.json();
+    assert.strictEqual(resetReceiptData.success, true);
+    console.log('  ✓ Direct replay reset endpoint verified successfully');
+
+    // 14. Clear All My History Test: DELETE /api/authentication-history/me
+    console.log('▶ [HTTP 14] Clear All History: DELETE /api/authentication-history/me');
+    const clearMeRes = await fetch(`${baseUrl}/api/authentication-history/me`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${aliceToken}` }
+    });
+    assert.strictEqual(clearMeRes.status, 200);
+    const clearMeData: any = await clearMeRes.json();
+    assert.strictEqual(clearMeData.success, true);
+    console.log('  ✓ Alice successfully wiped all history records with single click');
+
     console.log('\n============================================================');
     console.log('🎉 ALL END-TO-END HTTP SECURITY TESTS PASSED!');
     console.log('============================================================\n');

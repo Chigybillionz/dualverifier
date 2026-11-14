@@ -686,6 +686,115 @@ export class AuthHistoryDatabase {
   }
 
   /**
+   * Delete a single user authentication history record.
+   * STRICT IDOR PROTECTION: Users can ONLY delete records they own.
+   * Admin can delete with mandatory audit logging.
+   */
+  public deleteUserRecord(
+    recordId: string,
+    requesterUserId: string,
+    requesterRole?: string,
+    clientIp?: string
+  ): { success: boolean; error?: string; deletedRecord?: AuthenticationHistoryRecord } {
+    const record = this.records.get(recordId);
+    if (!record) {
+      return { success: false, error: 'Record not found' };
+    }
+
+    // Direct Ownership Check
+    const isOwner = record.userId === requesterUserId;
+    const isAdmin = requesterRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return {
+        success: false,
+        error: 'Access denied: You do not have permission to delete another user\'s private authentication record.'
+      };
+    }
+
+    // If admin is deleting on behalf of user, record audit entry
+    if (isAdmin && !isOwner) {
+      const auditEntry: AuditLogEntry = {
+        id: `audit_${crypto.randomBytes(8).toString('hex')}`,
+        adminUserId: requesterUserId,
+        action: 'DELETE_USER_AUTHENTICATION_RECORD',
+        targetUserId: record.userId,
+        details: `Admin deleted record ${recordId} belonging to user ${record.userId}`,
+        ipAddress: this.maskIpAddress(clientIp),
+        timestamp: new Date().toISOString()
+      };
+      this.auditLogs.unshift(auditEntry);
+    }
+
+    // Delete from records map
+    this.records.delete(recordId);
+
+    // Clean up index: User
+    const userRecs = this.indexUserRecords.get(record.userId);
+    if (userRecs) {
+      this.indexUserRecords.set(record.userId, userRecs.filter(id => id !== recordId));
+    }
+
+    // Clean up index: Session
+    const sessionRecs = this.indexSessionRecords.get(record.sessionId);
+    if (sessionRecs) {
+      this.indexSessionRecords.set(record.sessionId, sessionRecs.filter(id => id !== recordId));
+    }
+
+    // Clean up index: Device
+    const deviceRecs = this.indexDeviceRecords.get(record.deviceId);
+    if (deviceRecs) {
+      this.indexDeviceRecords.set(record.deviceId, deviceRecs.filter(id => id !== recordId));
+    }
+
+    this.saveDatabase();
+    return { success: true, deletedRecord: record };
+  }
+
+  /**
+   * Clear all authentication history records belonging to a specific user.
+   * STRICT GUARANTEE: Operates solely on records owned by requesterUserId.
+   */
+  public clearUserHistory(userId: string): {
+    success: boolean;
+    clearedCount: number;
+    deletedRecords: AuthenticationHistoryRecord[];
+  } {
+    const recordIds = [...(this.indexUserRecords.get(userId) || [])];
+    const deletedRecords: AuthenticationHistoryRecord[] = [];
+
+    for (const rid of recordIds) {
+      const rec = this.records.get(rid);
+      if (rec && rec.userId === userId) {
+        deletedRecords.push(rec);
+        this.records.delete(rid);
+
+        // Clean up Session index
+        const sessionRecs = this.indexSessionRecords.get(rec.sessionId);
+        if (sessionRecs) {
+          this.indexSessionRecords.set(rec.sessionId, sessionRecs.filter(id => id !== rid));
+        }
+
+        // Clean up Device index
+        const deviceRecs = this.indexDeviceRecords.get(rec.deviceId);
+        if (deviceRecs) {
+          this.indexDeviceRecords.set(rec.deviceId, deviceRecs.filter(id => id !== rid));
+        }
+      }
+    }
+
+    // Reset user's index array
+    this.indexUserRecords.set(userId, []);
+    this.saveDatabase();
+
+    return {
+      success: true,
+      clearedCount: deletedRecords.length,
+      deletedRecords
+    };
+  }
+
+  /**
    * Clear or reset for testing
    */
   public resetForTesting(): void {

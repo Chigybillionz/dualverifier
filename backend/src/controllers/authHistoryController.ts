@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { authHistoryDatabase } from '../services/authHistoryDatabase.js';
+import { pollarRegistry } from '../services/pollarRegistry.js';
 
 export class AuthHistoryController {
   /**
@@ -210,6 +211,132 @@ export class AuthHistoryController {
       const logs = authHistoryDatabase.getDeveloperDiagnosticLogs(req.user.userId, req.user.role);
       res.status(200).json({ success: true, count: logs.length, logs });
     } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  /**
+   * DELETE /api/authentication-history/record/:id
+   * Deletes a verification record and resets the replay lock so the user can redo verification.
+   * STRICT IDOR DEFENSE: Strictly validates that the requester owns this record.
+   */
+  async deleteRecord(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ success: false, error: 'Authentication required' });
+        return;
+      }
+
+      const recordId = String(req.params.id || '').trim();
+      if (!recordId) {
+        res.status(400).json({ success: false, error: 'Record ID is required' });
+        return;
+      }
+
+      const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
+      const deleteResult = authHistoryDatabase.deleteUserRecord(
+        recordId,
+        req.user.userId,
+        req.user.role,
+        clientIp
+      );
+
+      if (!deleteResult.success) {
+        const statusCode = deleteResult.error?.includes('Access denied') ? 403 : 404;
+        res.status(statusCode).json({
+          success: false,
+          error: deleteResult.error || 'Failed to delete record'
+        });
+        return;
+      }
+
+      const rec = deleteResult.deletedRecord!;
+
+      // Automatically reset replay anchor in Pollar registry so the receipt can be re-verified
+      if (rec.transactionReference) {
+        pollarRegistry.resetReceiptAnchor(rec.transactionReference);
+      }
+      if (rec.verificationResult?.proofHash) {
+        pollarRegistry.resetReceiptAnchor(rec.verificationResult.proofHash);
+      }
+      if (rec.verificationResult?.stellarTxHash) {
+        pollarRegistry.resetReceiptAnchor(rec.verificationResult.stellarTxHash);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Verification record deleted and replay lock reset successfully. You can now redo verification.',
+        deletedId: recordId,
+        transactionReference: rec.transactionReference
+      });
+    } catch (err: any) {
+      console.error('[AuthHistoryController] deleteRecord error:', err);
+      res.status(500).json({ success: false, error: err.message || 'Failed to delete record' });
+    }
+  }
+
+  /**
+   * DELETE /api/authentication-history/me
+   * Clears ALL authentication history records owned by the logged-in user and resets all associated replay locks.
+   */
+  async clearMyHistory(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ success: false, error: 'Authentication required' });
+        return;
+      }
+
+      const result = authHistoryDatabase.clearUserHistory(req.user.userId);
+
+      // Reset replay anchors for all deleted user receipts
+      for (const rec of result.deletedRecords) {
+        if (rec.transactionReference) {
+          pollarRegistry.resetReceiptAnchor(rec.transactionReference);
+        }
+        if (rec.verificationResult?.proofHash) {
+          pollarRegistry.resetReceiptAnchor(rec.verificationResult.proofHash);
+        }
+        if (rec.verificationResult?.stellarTxHash) {
+          pollarRegistry.resetReceiptAnchor(rec.verificationResult.stellarTxHash);
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `Successfully cleared ${result.clearedCount} verification records and reset replay locks.`,
+        clearedCount: result.clearedCount
+      });
+    } catch (err: any) {
+      console.error('[AuthHistoryController] clearMyHistory error:', err);
+      res.status(500).json({ success: false, error: err.message || 'Failed to clear history' });
+    }
+  }
+
+  /**
+   * POST /api/verify/reset-receipt
+   * Reset receipt replay lock so users can re-verify transactions cleanly.
+   */
+  async resetReceipt(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionId, reference, proofHash } = req.body || {};
+      const target = (sessionId || reference || proofHash || '').trim();
+      if (!target) {
+        res.status(400).json({
+          success: false,
+          error: 'A target sessionId, transaction reference, or proofHash is required'
+        });
+        return;
+      }
+
+      const resetResult = pollarRegistry.resetReceiptAnchor(target);
+      res.status(200).json({
+        success: true,
+        message: 'Receipt replay anchor reset successfully. You can now redo verification.',
+        target,
+        clearedCount: resetResult.clearedCount
+      });
+    } catch (err: any) {
+      console.error('[AuthHistoryController] resetReceipt error:', err);
       res.status(500).json({ success: false, error: err.message });
     }
   }

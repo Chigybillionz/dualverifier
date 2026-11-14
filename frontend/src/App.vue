@@ -120,6 +120,7 @@
             <BlueVerificationCard
               :card="activeBlueCard"
               @open-certificate="handleOpenCertificate"
+              @reset-replay="handleResetReplay"
             />
           </div>
 
@@ -165,6 +166,8 @@
       <AuthenticationHistoryDashboard
         ref="authHistoryDashboardRef"
         @select-record="handleSelectAuthRecord"
+        @record-deleted="handleRecordDeleted"
+        @history-cleared="handleHistoryCleared"
       />
 
       <!-- MODULE 4: LIVE ON-CHAIN CLAIMS LEDGER (PUBLIC BLOCKCHAIN ANCHORS) -->
@@ -707,5 +710,41 @@ async function handleResetRecord(proofHash: string) {
   } catch (err) {
     console.warn('Failed to reset proof:', err);
   }
+}
+
+async function handleResetReplay(card: any) {
+  try {
+    const target = card.routingPipeline?.rail?.identifier || card.proofHash;
+    const res = await fetch(apiUrl('/api/verify/reset-receipt'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: target, proofHash: card.proofHash })
+    });
+    const data = await res.json();
+    if (data.success) {
+      activeBlueCard.value = null;
+      await fetchShieldedMemos();
+      authHistoryDashboardRef.value?.refresh?.();
+      await fetchPersonalHistory();
+      alert(`Receipt ${target} replay lock reset! You can now redo verification.`);
+    }
+  } catch (err) {
+    console.warn('Failed to reset replay:', err);
+  }
+}
+
+async function handleRecordDeleted(payload: any) {
+  await fetchPersonalHistory();
+  await fetchShieldedMemos();
+  const ref = payload?.transactionReference;
+  if (ref && (activeBlueCard.value?.proofHash === ref || activeBlueCard.value?.routingPipeline?.rail?.identifier === ref)) {
+    activeBlueCard.value = null;
+  }
+}
+
+async function handleHistoryCleared() {
+  activeBlueCard.value = null;
+  personalHistoryCount.value = 0;
+  await fetchShieldedMemos();
 }
 </script>

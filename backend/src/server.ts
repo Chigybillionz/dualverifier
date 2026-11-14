@@ -440,9 +440,61 @@ app.get('/api/pollar/escrows', (_req, res) => {
   res.json({ success: true, records: pollarRegistry.getAllRecords() });
 });
 
+// Explicit Receipt Replay Reset Endpoint (Allows users to re-verify transactions)
+app.post('/api/verify/reset-receipt', (req, res) => {
+  try {
+    const { sessionId, reference, proofHash } = req.body || {};
+    const target = (sessionId || reference || proofHash || '').trim();
+    if (!target) {
+      res.status(400).json({ success: false, error: 'A target sessionId, transaction reference, or proofHash is required' });
+      return;
+    }
+
+    const resetResult = pollarRegistry.resetReceiptAnchor(target);
+    zcashMemoRegistry.resetProof(target);
+
+    res.status(200).json({
+      success: true,
+      message: 'Receipt replay anchor reset successfully. You can now redo verification.',
+      target,
+      clearedCount: resetResult.clearedCount
+    });
+  } catch (err: any) {
+    console.error('[API /verify/reset-receipt] Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Pollar Anchor Reset by Identifier (Session ID / Hash / TxID)
+app.post('/api/pollar/reset/:identifier', (req, res) => {
+  try {
+    const identifier = req.params.identifier;
+    const resetResult = pollarRegistry.resetReceiptAnchor(identifier);
+    res.status(200).json({
+      success: true,
+      message: `Reset anchor for ${identifier}`,
+      clearedCount: resetResult.clearedCount
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Legacy Zcash Memos Endpoint
 app.get('/api/zcash/memos', (_req, res) => {
   res.json({ success: true, records: zcashMemoRegistry.getAllRecords() });
+});
+
+// Legacy Zcash Reset Endpoint
+app.post('/api/zcash/reset/:proofHash', (req, res) => {
+  try {
+    const hash = req.params.proofHash;
+    zcashMemoRegistry.resetProof(hash);
+    pollarRegistry.resetReceiptAnchor(hash);
+    res.status(200).json({ success: true, message: `Proof ${hash} reset successfully` });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.listen(PORT, () => {

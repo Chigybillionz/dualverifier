@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authHistoryController } from '../controllers/authHistoryController.js';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
+import { pollarRegistry } from '../services/pollarRegistry.js';
 
 const router = Router();
 
@@ -30,9 +31,27 @@ router.get('/authentication-history/record/:id', requireAuth, (req, res) => {
   authHistoryController.getRecordById(req, res);
 });
 
+router.delete('/authentication-history/record/:id', requireAuth, (req, res) => {
+  authHistoryController.deleteRecord(req, res);
+});
+
+router.delete('/authentication-history/me', requireAuth, (req, res) => {
+  authHistoryController.clearMyHistory(req, res);
+});
+
 // 3. Developer & Diagnostic Segregation (Elevated roles only)
 router.get('/authentication-history/developer-logs', requireAuth, requireRole('developer', 'admin'), (req, res) => {
   authHistoryController.getDeveloperLogs(req, res);
+});
+
+// 4. Receipt Replay Reset (Allows users to re-verify transactions)
+router.post('/verify/reset-receipt', (req, res) => {
+  authHistoryController.resetReceipt(req, res);
+});
+
+router.post('/pollar/reset/:identifier', (req, res) => {
+  const result = pollarRegistry.resetReceiptAnchor(req.params.identifier);
+  res.status(200).json({ success: true, clearedCount: result.clearedCount });
 });
 
 export default router;

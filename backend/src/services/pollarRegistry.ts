@@ -512,6 +512,37 @@ export class PollarRegistry {
     return Array.from(this.registry.values()).sort((a, b) => b.firstVerifiedAt - a.firstVerifiedAt);
   }
 
+  /**
+   * Reset or un-anchor a receipt reference so users can redo verification.
+   * Can accept either a sessionIdOrTxId, a proofHash, or a stellarTxHash.
+   */
+  resetReceiptAnchor(identifier: string): { success: boolean; clearedCount: number } {
+    if (!identifier) return { success: false, clearedCount: 0 };
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanDigits = cleanId.replace(/[^0-9]/g, '');
+    let clearedCount = 0;
+
+    for (const [hash, record] of Array.from(this.registry.entries())) {
+      const matchHash = hash.toLowerCase() === cleanId;
+      const recSessionDigits = record.sessionIdOrTxId.replace(/[^0-9]/g, '');
+      const matchSession = record.sessionIdOrTxId.toLowerCase() === cleanId ||
+                           (cleanDigits.length >= 10 && recSessionDigits === cleanDigits);
+      const matchStellar = record.stellarTxHash?.toLowerCase() === cleanId;
+
+      if (matchHash || matchSession || matchStellar) {
+        this.registry.delete(hash);
+        clearedCount++;
+      }
+    }
+
+    // Also remove from nibssClearingDatabase if it was dynamically created
+    if (cleanDigits.length >= 10 && this.nibssClearingDatabase.has(cleanDigits)) {
+      this.nibssClearingDatabase.delete(cleanDigits);
+    }
+
+    return { success: clearedCount > 0, clearedCount };
+  }
+
   private seedDemoRegistry(): void {
     // Demo 1: Authentic GTBank N150,000 transfer anchored into Pollar Stellar Escrow
     const demo1Hash = this.computeReceiptProofHash({
