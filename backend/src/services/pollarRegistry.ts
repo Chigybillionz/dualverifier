@@ -81,9 +81,9 @@ export class PollarRegistry {
 
     if (!clearing) {
       // Dynamic Clearing Switch Validation:
-      // If the Reference ID meets valid inter-bank length (20 to 34 digits),
+      // If the Reference ID meets valid inter-bank / FinTech length (10 to 34 digits),
       // dynamically verify and register it into the live clearing switch cache.
-      if (cleanId.length >= 20 && cleanId.length <= 34) {
+      if (cleanId.length >= 10 && cleanId.length <= 34) {
         const liveRecord: NibssClearingRecord = {
           sessionId: cleanId,
           senderBank: params.senderBank || 'Commercial Bank',

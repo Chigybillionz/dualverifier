@@ -150,7 +150,7 @@ export function parseNigerianReceiptText(text: string): Partial<ExtractedReceipt
   // 1. Session ID / Transaction Reference extraction
   // Strategy 1a: Labeled patterns with flexible spacing, hyphens, and slashes
   const labeledPatterns = [
-    /(?:Session\s*ID|NIBSS(?:\s*NIP)?\s*(?:Ref|ID|Session)?|NIP\s*(?:Ref|ID|Session|Transaction)?|Transaction\s*(?:ID|Ref|No|Number|Reference)?|Payment\s*(?:Ref|ID|Reference)?|Transfer\s*(?:Ref|ID|Reference)?|Reference(?:\s*(?:No|Number|ID))?|Order\s*(?:No|Number|ID)?|Trace\s*ID|RRN)[\s:.\-#\n\r]*([0-9a-zA-Z\s\-\/]{16,45})/gi,
+    /(?:Session\s*ID|NIBSS(?:\s*NIP)?\s*(?:Ref|ID|Session)?|NIP\s*(?:Ref|ID|Session|Transaction)?|Transaction\s*(?:ID|Ref|No|Number|Reference)?|Payment\s*(?:Ref|ID|Reference)?|Transfer\s*(?:Ref|ID|Reference)?|Reference(?:\s*(?:No|Number|ID))?|Order\s*(?:No|Number|ID)?|Trace\s*ID|RRN)[\s:.\-#\n\r]*([0-9a-zA-Z\s\-\/]{10,45})/gi,
   ];
 
   for (const pat of labeledPatterns) {
@@ -158,7 +158,7 @@ export function parseNigerianReceiptText(text: string): Partial<ExtractedReceipt
     for (const m of matches) {
       if (m && m[1]) {
         const clean = m[1].replace(/[^0-9]/g, '');
-        if (clean.length >= 20 && clean.length <= 34) {
+        if (clean.length >= 10 && clean.length <= 34) {
           sessionId = clean;
           break;
         }
@@ -167,20 +167,23 @@ export function parseNigerianReceiptText(text: string): Partial<ExtractedReceipt
     if (sessionId) break;
   }
 
-  // Strategy 1b: Continuous 20 to 34 digits anywhere in text
+  // Strategy 1b: Continuous 10 to 34 digits anywhere in text (check 30 digits first, then 10-29 digits)
   if (!sessionId) {
-    const continuousMatch = text.match(/\b([0-9]{20,34})\b/);
-    if (continuousMatch) {
+    const exact30Match = text.match(/\b([0-9]{30})\b/);
+    const continuousMatch = text.match(/\b([0-9]{10,34})\b/);
+    if (exact30Match) {
+      sessionId = exact30Match[1];
+    } else if (continuousMatch) {
       sessionId = continuousMatch[1];
     }
   }
 
-  // Strategy 1c: Chunked digit patterns (e.g. "000014 261114 102030 492810 394812")
+  // Strategy 1c: Chunked digit patterns (e.g. "000014 261114 102030 492810 394812" or "100033 240130 144")
   if (!sessionId) {
-    const chunkedMatch = text.match(/(?:[0-9]{4,8}[\s\-\/]){2,6}[0-9]{4,12}/);
+    const chunkedMatch = text.match(/(?:[0-9]{3,8}[\s\-\/]){1,6}[0-9]{3,12}/);
     if (chunkedMatch) {
       const clean = chunkedMatch[0].replace(/[^0-9]/g, '');
-      if (clean.length >= 20 && clean.length <= 34) {
+      if (clean.length >= 10 && clean.length <= 34) {
         sessionId = clean;
       }
     }

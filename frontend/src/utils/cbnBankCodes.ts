@@ -454,3 +454,4 @@ export function lookupCbnBank(query: string): CBNBankRecord | null {
 export function getAllCbnBanks(): CBNBankRecord[] {
   return Object.values(CBN_BANK_REGISTRY);
 }
+
