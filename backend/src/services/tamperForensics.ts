@@ -25,19 +25,21 @@ export interface TamperForensicsResult {
 const SUSPICIOUS_SOFTWARE_KEYWORDS = [
   'canva',
   'photoshop',
-  'adobe',
+  'adobe photoshop',
+  'adobe illustrator',
   'gimp',
   'figma',
   'illustrator',
   'picsart',
   'pixlr',
+  'pixellab',
   'inshot',
   'html2canvas',
   'puppeteer',
   'headlesschrome',
-  'screenshot-editor',
   'paint.net',
   'fake alert',
+  'fakepay',
   'pixelmator',
   'snapseed'
 ];

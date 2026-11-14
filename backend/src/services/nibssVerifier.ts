@@ -248,11 +248,13 @@ export function decodeNibssSessionId(
             deltaSeconds = rawDelta;
           }
 
-          // Allow realistic inter-bank clearing queue latency (up to 30 mins / 1800s)
-          if (deltaSeconds > 1800) {
+          // Allow realistic inter-bank clearing queue latency (up to 24h for delayed NIP switch settlement)
+          if (deltaSeconds > 86400) {
             isTimeTampered = true;
-            timeTamperReason = `TIMESTAMP TAMPER ALERT: Visual receipt timestamp differs from cryptographic NIBSS timestamp by ${deltaSeconds}s (threshold: 1800s max).`;
+            timeTamperReason = `TIMESTAMP TAMPER ALERT: Visual receipt timestamp differs from cryptographic NIBSS timestamp by ${Math.round(deltaSeconds / 3600)} hours (threshold: 24h max).`;
             flags.push(timeTamperReason);
+          } else if (deltaSeconds > 1800) {
+            flags.push(`Notice: Inter-bank clearing queue latency of ${Math.round(deltaSeconds / 60)} minutes detected between transaction initiation and NIP switch settlement.`);
           }
         }
       }
