@@ -1,4 +1,4 @@
-import { lookupCbnBank, CBNBankRecord } from '../config/cbnBankCodes.js';
+import { lookupCbnBank, CBNBankRecord, CBN_BANK_REGISTRY } from '../config/cbnBankCodes.js';
 import { pollarRegistry, PollarAnchorRecord } from './pollarRegistry.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import exifr from 'exifr';
@@ -119,7 +119,8 @@ function calculateEntropy(str: string): number {
 export function decodeNibssSessionId(
   sessionId: string,
   claimedSenderBank?: string,
-  claimedReceiptTime?: string
+  claimedReceiptTime?: string,
+  claimedReceiverBank?: string
 ): NIBSSDecodedSegment {
   const cleanId = (sessionId || '').replace(/[^0-9]/g, '');
   const flags: string[] = [];
@@ -131,66 +132,115 @@ export function decodeNibssSessionId(
     flags.push(`Session ID / Reference must be 10 to 34 numeric digits (got ${cleanId.length} digits)`);
   }
 
-  // 1. Determine Architecture: Canonical NIP (Bank Code First) vs FinTech Direct (Timestamp First)
+  // Helpers for calendar date validation
+  const isValidDateDigits = (str: string): boolean => {
+    if (str.length !== 12 || !/^\d{12}$/.test(str)) return false;
+    const yy = parseInt(str.substring(0, 2), 10);
+    const mm = parseInt(str.substring(2, 4), 10);
+    const dd = parseInt(str.substring(4, 6), 10);
+    const hh = parseInt(str.substring(6, 8), 10);
+    const min = parseInt(str.substring(8, 10), 10);
+    const ss = parseInt(str.substring(10, 12), 10);
+    return yy >= 20 && yy <= 35 && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31 && hh <= 23 && min <= 59 && ss <= 59;
+  };
+
+  const isValidDateOnly = (str: string): boolean => {
+    if (str.length !== 6 || !/^\d{6}$/.test(str)) return false;
+    const yy = parseInt(str.substring(0, 2), 10);
+    const mm = parseInt(str.substring(2, 4), 10);
+    const dd = parseInt(str.substring(4, 6), 10);
+    return yy >= 20 && yy <= 35 && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31;
+  };
+
+  // 1. Determine Architecture:
   let bankSegment = '';
   let timeSegment = '';
   let serialSegment = '';
   let resolvedBank: CBNBankRecord | null = null;
   let isTimestampFirst = false;
 
+  // Step 1a: Check if cleanId begins with a registered 6-digit CBN Bank Code (Canonical NIP)
   const possibleBankCode = cleanId.substring(0, 6);
   const matchedBank = lookupCbnBank(possibleBankCode);
 
   if (matchedBank) {
-    // Canonical 6-digit Bank Code Prefix (GTBank 000013, Access 000014, Moniepoint 090405, OPay 100004, PalmPay 100033, etc.)
     bankSegment = possibleBankCode;
     resolvedBank = matchedBank;
-    timeSegment = cleanId.length >= 18 ? cleanId.substring(6, 18) : (cleanId.length >= 12 ? cleanId.substring(6, 12) : '');
-    serialSegment = cleanId.length >= 18 ? cleanId.substring(18) : cleanId.substring(6);
+    const candidateTime = cleanId.substring(6, 18);
+    if (isValidDateDigits(candidateTime)) {
+      timeSegment = candidateTime;
+      serialSegment = cleanId.substring(18);
+    }
     if (!isExact30) {
       flags.push(`Notice: Inter-Bank Reference length is ${cleanId.length} digits (Standard NIP is 30 digits)`);
     }
+  } else if (cleanId.length >= 6 && isValidDateOnly(cleanId.substring(0, 6))) {
+    // Step 1b: Check if cleanId begins with YYMMDD (FinTech Direct timestamp-indexed, e.g. OPay)
+    isTimestampFirst = true;
+    const candidate12 = cleanId.substring(0, 12);
+    if (isValidDateDigits(candidate12)) {
+      timeSegment = candidate12;
+      serialSegment = cleanId.substring(12);
+    } else {
+      timeSegment = cleanId.substring(0, 6) + '120000';
+      serialSegment = cleanId.substring(6);
+    }
+    resolvedBank = claimedSenderBank ? lookupCbnBank(claimedSenderBank) : null;
+    bankSegment = resolvedBank ? resolvedBank.code : 'FINTECH';
+    flags.push(`Notice: FinTech Direct Instant Settlement (${cleanId.length} digits, timestamp-indexed)`);
   } else {
-    // Check if the reference begins with YYMMDD (Year 2020-2035)
-    const possibleYy = parseInt(cleanId.substring(0, 2), 10);
-    const possibleMm = parseInt(cleanId.substring(2, 4), 10);
-    const possibleDd = parseInt(cleanId.substring(4, 6), 10);
+    // Step 1c: Gateway / Channel Prefixed (e.g. 03367302 100033 261112062412 40)
+    for (const [code, bank] of Object.entries(CBN_BANK_REGISTRY)) {
+      const idx = cleanId.indexOf(code);
+      if (idx !== -1) {
+        const afterCode = cleanId.substring(idx + 6, idx + 18);
+        if (isValidDateDigits(afterCode)) {
+          bankSegment = code;
+          resolvedBank = bank;
+          timeSegment = afterCode;
+          serialSegment = cleanId.substring(idx + 18);
+          break;
+        } else if (!resolvedBank) {
+          bankSegment = code;
+          resolvedBank = bank;
+        }
+      }
+    }
 
-    if (possibleYy >= 20 && possibleYy <= 35 && possibleMm >= 1 && possibleMm <= 12 && possibleDd >= 1 && possibleDd <= 31) {
-      isTimestampFirst = true;
-      timeSegment = cleanId.length >= 12 ? cleanId.substring(0, 12) : cleanId.substring(0, 6);
-      serialSegment = cleanId.length >= 12 ? cleanId.substring(12) : cleanId.substring(6);
+    // If timeSegment still not found, scan cleanId for any valid 12-digit YYMMDDHHMMSS timestamp
+    if (!timeSegment) {
+      for (let i = 0; i <= cleanId.length - 12; i++) {
+        const candidate = cleanId.substring(i, i + 12);
+        if (isValidDateDigits(candidate)) {
+          timeSegment = candidate;
+          if (!serialSegment) serialSegment = cleanId.substring(i + 12);
+          break;
+        }
+      }
+    }
+
+    if (!resolvedBank) {
       resolvedBank = claimedSenderBank ? lookupCbnBank(claimedSenderBank) : null;
       bankSegment = resolvedBank ? resolvedBank.code : 'FINTECH';
-      flags.push(`Notice: FinTech Direct Instant Settlement (${cleanId.length} digits, timestamp-indexed)`);
-    } else {
-      bankSegment = possibleBankCode;
-      resolvedBank = claimedSenderBank ? lookupCbnBank(claimedSenderBank) : lookupCbnBank(bankSegment);
-      timeSegment = cleanId.length >= 18 ? cleanId.substring(6, 18) : '';
-      serialSegment = cleanId.length >= 18 ? cleanId.substring(18) : '';
     }
   }
 
   let claimedBankMatches = true;
   let bankWarning: string | undefined;
 
-  if (cleanId.length >= 6) {
-    if (!resolvedBank && !isTimestampFirst) {
-      const claimedFallback = claimedSenderBank ? lookupCbnBank(claimedSenderBank) : null;
-      if (!claimedFallback) {
-        flags.push(`Unknown CBN Institution Code [${bankSegment}]. Not registered with NIBSS routing directory.`);
-        bankWarning = `Unknown Bank Code ${bankSegment}`;
-      } else {
-        resolvedBank = claimedFallback;
-      }
-    } else if (claimedSenderBank && resolvedBank && !isTimestampFirst) {
-      const claimedResolved = lookupCbnBank(claimedSenderBank);
-      const isGenericClaim = /^(Nigerian\s*Commercial\s*Bank|Commercial\s*Bank|Bank|Transfer\s*Sender|Unknown)$/i.test(claimedSenderBank.trim());
-      if (claimedResolved && claimedResolved.code !== resolvedBank.code && !isGenericClaim) {
-        claimedBankMatches = false;
-        bankWarning = `FORGERY DETECTED: Receipt logo/name claims [${claimedSenderBank}] (${claimedResolved.shortName}), but NIBSS Session ID code [${bankSegment}] mathematically routes to [${resolvedBank.name}]!`;
-        flags.push(bankWarning);
-      }
+  if (cleanId.length >= 6 && resolvedBank) {
+    const claimedSenderResolved = claimedSenderBank ? lookupCbnBank(claimedSenderBank) : null;
+    const claimedReceiverResolved = claimedReceiverBank ? lookupCbnBank(claimedReceiverBank) : null;
+
+    // In inter-bank transfers, the reference code can be the sender bank OR the receiver bank
+    const matchesSender = claimedSenderResolved && claimedSenderResolved.code === resolvedBank.code;
+    const matchesReceiver = claimedReceiverResolved && claimedReceiverResolved.code === resolvedBank.code;
+    const isGenericClaim = !claimedSenderBank || /^(Nigerian\s*Commercial\s*Bank|Commercial\s*Bank|Bank|Transfer\s*Sender|Unknown)$/i.test(claimedSenderBank.trim());
+
+    if (!matchesSender && !matchesReceiver && !isGenericClaim && claimedSenderResolved) {
+      claimedBankMatches = false;
+      bankWarning = `FORGERY DETECTED: Receipt logo/name claims [${claimedSenderBank}] (${claimedSenderResolved.shortName}), but NIBSS Session ID code [${bankSegment}] mathematically routes to [${resolvedBank.name}]!`;
+      flags.push(bankWarning);
     }
   }
 
@@ -634,7 +684,7 @@ export async function verifyAndAnchorLocalBankReceipt(params: {
   } = params;
 
   // 1. Deterministic NIBSS mathematical validation
-  const nibssResult = decodeNibssSessionId(sessionId, senderBank, receiptTimestamp);
+  const nibssResult = decodeNibssSessionId(sessionId, senderBank, receiptTimestamp, receiverBank);
   const effectiveTimestamp = receiptTimestamp || nibssResult.timestampSegment.parsedIso || new Date().toISOString();
 
   const allFlags = [...nibssResult.flags];
